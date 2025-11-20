@@ -1,0 +1,84 @@
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    color: var(--text-muted);
+}
+
+.timer {
+    color: var(--primary);
+}
+
+.card {
+    background: var(--surface);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    text-align: center;
+}
+
+.question {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.option {
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: white;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.option:hover {
+    background-color: #f8fafc;
+}
+
+.selected {
+    background-color: #eff6ff;
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2rem;
+}
+
+.score {
+    font-size: 4rem;
+    font-weight: bold;
+    margin: 2rem 0;
+}
+
+.passed {
+    color: var(--success);
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+}
+
+.failed {
+    color: var(--error);
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+}

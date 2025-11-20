@@ -1,0 +1,75 @@
+.title {
+    font-size: 2rem;
+    margin-bottom: 2rem;
+}
+
+.sectionTitle {
+    font-size: 1.5rem;
+    margin: 3rem 0 1.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.card {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.card h3 {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.courseGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.courseCard {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+}
+
+.courseImage {
+    height: 160px;
+    background-color: #e2e8f0;
+}
+
+.courseContent {
+    padding: 1.5rem;
+}
+
+.courseContent h4 {
+    margin-bottom: 1rem;
+}
+
+.progressBar {
+    height: 8px;
+    background-color: #e2e8f0;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+}
+
+.progressFill {
+    height: 100%;
+    background-color: var(--primary);
+}

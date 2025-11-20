@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums converted to String for SQLite compatibility
+// Role: ADMIN, TRAINER, EMPLOYEE
+// Level: BASIC, INTERMEDIATE, ADVANCED, EXPERT
+// ModuleType: VIDEO, PDF, PPT, QUIZ, ASSIGNMENT
+// EnrollmentStatus: PENDING, ACTIVE, COMPLETED, REJECTED
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String
+  role          String    @default("EMPLOYEE")
+  departmentId  String?
+  designationId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  department    Department? @relation(fields: [departmentId], references: [id])
+  designation   Designation? @relation(fields: [designationId], references: [id])
+  
+  enrollments   Enrollment[]
+  certificates  Certificate[]
+  notifications Notification[]
+  createdCourses Course[] @relation("CreatedCourses")
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  users     User[]
+  trainingRules TrainingRule[]
+}
+
+model Designation {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  users     User[]
+  trainingRules TrainingRule[]
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String
+  level       String   @default("BASIC")
+  thumbnail   String?
+  published   Boolean  @default(false)
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("CreatedCourses", fields: [authorId], references: [id])
+  modules     Module[]
+  enrollments Enrollment[]
+  certificates Certificate[]
+  trainingRules TrainingRule[]
+}
+
+model Module {
+  id          String     @id @default(cuid())
+  title       String
+  type        String
+  contentUrl  String?    // For Video, PDF, PPT
+  description String?
+  order       Int
+  courseId    String
+  
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  quiz        Quiz?
+  progress    ModuleProgress[]
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  moduleId    String   @unique
+  timeLimit   Int?     // In minutes
+  passScore   Int      @default(70) // Percentage
+  
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions   Question[]
+  results     QuizResult[]
+}
+
+model Question {
+  id          String   @id @default(cuid())
+  quizId      String
+  text        String
+  type        String
+  options     String
+  explanation String?
+  
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model Enrollment {
+  id          String           @id @default(cuid())
+  userId      String
+  courseId    String
+  status      String           @default("PENDING")
+  progress    Int              @default(0) // Percentage
+  enrolledAt  DateTime         @default(now())
+  completedAt DateTime?
+
+  user        User             @relation(fields: [userId], references: [id])
+  course      Course           @relation(fields: [courseId], references: [id])
+  moduleProgress ModuleProgress[]
+
+  @@unique([userId, courseId])
+}
+
+model ModuleProgress {
+  id           String   @id @default(cuid())
+  enrollmentId String
+  moduleId     String
+  completed    Boolean  @default(false)
+  
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module       Module     @relation(fields: [moduleId], references: [id])
+
+  @@unique([enrollmentId, moduleId])
+}
+
+model QuizResult {
+  id          String   @id @default(cuid())
+  quizId      String
+  userId      String
+  score       Int
+  passed      Boolean
+  attemptedAt DateTime @default(now())
+
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+}
+
+model Certificate {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  issueDate DateTime @default(now())
+  pdfUrl    String?
+
+  user      User     @relation(fields: [userId], references: [id])
+  course    Course   @relation(fields: [courseId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model TrainingRule {
+  id            String       @id @default(cuid())
+  name          String
+  departmentId  String?
+  department    Department?  @relation(fields: [departmentId], references: [id])
+  designationId String?
+  designation   Designation? @relation(fields: [designationId], references: [id])
+  courseId      String
+  course        Course       @relation(fields: [courseId], references: [id])
+  createdAt     DateTime     @default(now())
+}

@@ -1,0 +1,111 @@
+.container {
+    display: flex;
+    height: calc(100vh - 64px);
+    /* Adjust based on header height */
+    background-color: var(--background);
+}
+
+.sidebar {
+    width: 300px;
+    background-color: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.courseTitle {
+    padding: 1.5rem;
+    font-size: 1.25rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.moduleList {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.moduleItem {
+    display: flex;
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    background: none;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.moduleItem:hover {
+    background-color: #f8fafc;
+}
+
+.active {
+    background-color: #eff6ff;
+    border-left: 4px solid var(--primary);
+}
+
+.moduleStatus {
+    margin-right: 1rem;
+    color: var(--success);
+    font-weight: bold;
+}
+
+.moduleInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.moduleType {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.moduleName {
+    font-weight: 500;
+}
+
+.content {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.contentHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.contentBody {
+    background: var(--surface);
+    padding: 2rem;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.videoPlaceholder {
+    aspect-ratio: 16 / 9;
+    background-color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-bottom: 2rem;
+}
+
+.documentPlaceholder {
+    padding: 4rem;
+    background-color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    border-radius: var(--radius);
+}
+
+.description h3 {
+    margin-bottom: 0.5rem;
+}

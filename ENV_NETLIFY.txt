@@ -1,0 +1,21 @@
+# Environment Variables Template for Netlify
+
+# Copy these to your Netlify environment variables:
+# Site configuration → Environment variables → Add a variable
+
+# 1. Database Connection (from NeonDB)
+DATABASE_URL=postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech/neondb?sslmode=require
+
+# 2. Authentication Secret (use this exact value)
+AUTH_SECRET=8ca704852a76beee7ca1b0d7efb10f32b6cdefeae50e8c905c771c32ad24109f5
+
+# 3. NextAuth URL (your Netlify site URL)
+NEXTAUTH_URL=https://your-site-name.netlify.app
+
+# Instructions:
+# 1. Create NeonDB account at https://neon.tech
+# 2. Create a new project and copy the connection string
+# 3. Replace DATABASE_URL above with your actual connection string
+# 4. Replace NEXTAUTH_URL with your actual Netlify site URL
+# 5. Add all three variables to Netlify
+# 6. Redeploy your site

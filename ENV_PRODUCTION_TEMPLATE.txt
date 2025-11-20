@@ -1,0 +1,11 @@
+# Production Environment Variables Template
+# Copy this to your Vercel project settings
+
+# Database (Vercel Postgres - auto-provided when you add storage)
+DATABASE_URL="postgresql://user:password@host:5432/database"
+
+# Authentication Secret (use the one generated below)
+AUTH_SECRET="8ca704852a76beee7ca1b0d7efb10f32b6cdefeae50e8c905c771c32ad24109f5"
+
+# NextAuth URL (Your deployed Vercel URL)
+NEXTAUTH_URL="https://your-app-name.vercel.app"

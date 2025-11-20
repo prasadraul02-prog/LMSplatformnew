@@ -1,0 +1,98 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    background-color: #f0f2f5;
+    min-height: 100vh;
+}
+
+.certificate {
+    background: white;
+    width: 800px;
+    padding: 4rem;
+    border: 10px solid #1e293b;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    font-size: 3rem;
+    color: #1e293b;
+    margin-bottom: 2rem;
+    font-family: serif;
+}
+
+.body p {
+    font-size: 1.25rem;
+    color: #64748b;
+    margin: 1rem 0;
+}
+
+.body h2 {
+    font-size: 2.5rem;
+    color: #0f172a;
+    margin: 1rem 0;
+    font-family: serif;
+    border-bottom: 2px solid #e2e8f0;
+    display: inline-block;
+    padding-bottom: 0.5rem;
+}
+
+.body h3 {
+    font-size: 2rem;
+    color: #2563eb;
+    margin: 1rem 0;
+}
+
+.footer {
+    margin-top: 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.signature {
+    text-align: center;
+}
+
+.line {
+    width: 200px;
+    height: 1px;
+    background-color: #0f172a;
+    margin-bottom: 0.5rem;
+}
+
+.id {
+    font-size: 0.875rem;
+    color: #94a3b8;
+}
+
+.printBtn {
+    margin-top: 2rem;
+    padding: 1rem 2rem;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+@media print {
+    .container {
+        background: white;
+        padding: 0;
+    }
+
+    .certificate {
+        box-shadow: none;
+        border: 5px solid #1e293b;
+        width: 100%;
+        height: 100vh;
+    }
+
+    .printBtn {
+        display: none;
+    }
+}

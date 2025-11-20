@@ -1,0 +1,70 @@
+'use server';
+
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+const UserSchema = z.object({
+    name: z.string().min(1, "Name is required"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    role: z.enum(["ADMIN", "TRAINER", "EMPLOYEE"]),
+});
+
+export async function createUser(prevState: any, formData: FormData) {
+    const validatedFields = UserSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+        role: formData.get('role'),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            error: validatedFields.error.flatten().fieldErrors,
+        };
+    }
+
+    const { name, email, password, role } = validatedFields.data;
+
+    try {
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existingUser) {
+            return {
+                message: "User with this email already exists",
+            };
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 4);
+
+        await prisma.user.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                role: role as any,
+            },
+        });
+
+        revalidatePath('/admin/users');
+        return { success: true, message: "User created successfully" };
+    } catch (error) {
+        return { message: "Failed to create user" };
+    }
+}
+
+export async function deleteUser(id: string) {
+    try {
+        await prisma.user.delete({
+            where: { id },
+        });
+        revalidatePath('/admin/users');
+        return { success: true };
+    } catch (error) {
+        return { error: "Failed to delete user" };
+    }
+}
