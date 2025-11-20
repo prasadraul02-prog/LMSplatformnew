@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState } from 'react-dom';
-import { createModule } from '../actions';
+import { createModule } from '../../actions';
 import styles from '../../../admin.module.css';
 
 export default function CreateModulePage({ params }: { params: { id: string } }) {

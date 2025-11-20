@@ -1,4 +1,3 @@
-```
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
@@ -37,12 +36,12 @@ export default async function EmployeeDashboard() {
       <h2 className={styles.sectionTitle}>Continue Learning</h2>
       <div className={styles.courseGrid}>
         {enrollments.map(enrollment => (
-          <Link href={`/ employee / courses / ${ enrollment.course.id } `} key={enrollment.id} className={styles.courseCard}>
+          <Link href={`/employee/courses/${enrollment.course.id}`} key={enrollment.id} className={styles.courseCard}>
             <div className={styles.courseImage}></div>
             <div className={styles.courseContent}>
               <h4>{enrollment.course.title}</h4>
               <div className={styles.progressBar}>
-                <div className={styles.progressFill} style={{ width: `${ enrollment.progress }% ` }}></div>
+                <div className={styles.progressFill} style={{ width: `${enrollment.progress}%` }}></div>
               </div>
               <p>{enrollment.progress}% Complete</p>
             </div>
@@ -55,4 +54,3 @@ export default async function EmployeeDashboard() {
     </div>
   );
 }
-```
