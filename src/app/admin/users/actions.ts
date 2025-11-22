@@ -94,11 +94,11 @@ export async function importUsers(prevState: any, formData: FormData) {
         let usersToProcess: any[] = [];
 
         // Check for Transposed Format (User's specific layout)
-        const nameRow = data.find((row: any) => row['Column Name'] === 'Name' || row['Column Name'] === 'name');
-        const emailRow = data.find((row: any) => row['Column Name'] === 'Email' || row['Column Name'] === 'email');
+        const nameRow = data.find((row: any) => row['Column Name'] === 'Name' || row['Column Name'] === 'name') as any;
+        const emailRow = data.find((row: any) => row['Column Name'] === 'Email' || row['Column Name'] === 'email') as any;
 
         if (nameRow && emailRow) {
-            const roleRow = data.find((row: any) => row['Column Name'] === 'Role' || row['Column Name'] === 'role');
+            const roleRow = data.find((row: any) => row['Column Name'] === 'Role' || row['Column Name'] === 'role') as any;
             const keys = Object.keys(nameRow).filter(k => k !== 'Column Name' && k !== 'Description');
 
             for (const key of keys) {
