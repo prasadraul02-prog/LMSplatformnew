@@ -3,23 +3,35 @@ import styles from "../dashboard.module.css"; // Reuse dashboard styles
 
 export default async function ReportsPage() {
     // Fetch data for reports
-    const totalUsers = await prisma.user.count({ where: { role: 'EMPLOYEE' } });
-    const totalCourses = await prisma.course.count();
-    const totalEnrollments = await prisma.enrollment.count();
-    const completedEnrollments = await prisma.enrollment.count({ where: { progress: 100 } });
-
-    const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
-
-    // Department-wise progress
-    const departments = await prisma.department.findMany({
-        include: {
-            users: {
-                include: {
-                    enrollments: true
+    // Fetch data for reports in parallel
+    const [
+        totalUsers,
+        totalCourses,
+        totalEnrollments,
+        completedEnrollments,
+        departments
+    ] = await Promise.all([
+        prisma.user.count({ where: { role: 'EMPLOYEE' } }),
+        prisma.course.count(),
+        prisma.enrollment.count(),
+        prisma.enrollment.count({ where: { progress: 100 } }),
+        prisma.department.findMany({
+            select: {
+                name: true,
+                users: {
+                    select: {
+                        enrollments: {
+                            select: {
+                                progress: true
+                            }
+                        }
+                    }
                 }
             }
-        }
-    });
+        })
+    ]);
+
+    const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
 
     const deptStats = departments.map(dept => {
         const deptEnrollments = dept.users.flatMap(u => u.enrollments);
@@ -28,6 +40,7 @@ export default async function ReportsPage() {
         const deptRate = deptTotal > 0 ? Math.round((deptCompleted / deptTotal) * 100) : 0;
         return { name: dept.name, rate: deptRate, total: deptTotal, completed: deptCompleted };
     });
+
 
     return (
         <div>

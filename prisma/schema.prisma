@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+
 // Enums converted to String for SQLite compatibility
 // Role: ADMIN, TRAINER, EMPLOYEE
 // Level: BASIC, INTERMEDIATE, ADVANCED, EXPERT
