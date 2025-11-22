@@ -32,10 +32,31 @@ export default function ImportUsersPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Upload File</CardTitle>
-                    <CardDescription>
-                        Please ensure your file follows the required format: <strong>Name, Email, Role (optional)</strong>.
-                    </CardDescription>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Upload File</CardTitle>
+                            <CardDescription>
+                                Please ensure your file follows the required format.
+                            </CardDescription>
+                        </div>
+                        <Button variant="outline" onClick={() => {
+                            const headers = ['Name', 'Email', 'Role'];
+                            const rows = [['John Doe', 'john@example.com', 'EMPLOYEE']];
+                            const csvContent = "data:text/csv;charset=utf-8,"
+                                + headers.join(",") + "\n"
+                                + rows.map(e => e.join(",")).join("\n");
+                            const encodedUri = encodeURI(csvContent);
+                            const link = document.createElement("a");
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", "employee_import_template.csv");
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }}>
+                            <FileSpreadsheet className="mr-2 h-4 w-4" />
+                            Download Template
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form action={formAction} className="space-y-6">

@@ -85,48 +85,4 @@ export async function importUsers(prevState: any, formData: FormData) {
         const data = XLSX.utils.sheet_to_json(sheet);
 
         if (data.length === 0) {
-            return { error: "The uploaded file is empty" };
         }
-
-        const defaultPassword = await bcrypt.hash("Welcome123!", 4);
-        let successCount = 0;
-        let duplicateCount = 0;
-
-        for (const row of data as any[]) {
-            const name = row['Name'] || row['name'];
-            const email = row['Email'] || row['email'];
-            const role = (row['Role'] || row['role'] || 'EMPLOYEE').toUpperCase();
-
-            if (!name || !email) continue;
-
-            const existingUser = await prisma.user.findUnique({
-                where: { email },
-            });
-
-            if (existingUser) {
-                duplicateCount++;
-                continue;
-            }
-
-            await prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    password: defaultPassword,
-                    role: role as any,
-                },
-            });
-            successCount++;
-        }
-
-        revalidatePath('/admin/users');
-        return {
-            success: true,
-            message: `Import successful! Added ${successCount} users. Skipped ${duplicateCount} duplicates.`
-        };
-
-    } catch (error) {
-        console.error("Import error:", error);
-        return { error: "Failed to process file. Please check the format." };
-    }
-}
