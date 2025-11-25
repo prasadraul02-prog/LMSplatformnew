@@ -39,6 +39,8 @@ export default function TrainingMonitor() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'SENT' | 'APPROVED' | 'REJECTED'>('ALL');
     const [lastRefresh, setLastRefresh] = useState(new Date());
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [resetting, setResetting] = useState(false);
 
     const fetchRequests = async (showToast = false) => {
         setLoading(true);
@@ -60,6 +62,28 @@ export default function TrainingMonitor() {
             }
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleReset = async () => {
+        setResetting(true);
+        try {
+            const response = await fetch('/api/training/reset', {
+                method: 'POST',
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                toast.success('All training data has been reset!');
+                await fetchRequests();
+                setShowResetConfirm(false);
+            } else {
+                toast.error(data.error || 'Failed to reset data');
+            }
+        } catch (error) {
+            toast.error('Failed to reset data');
+        } finally {
+            setResetting(false);
         }
     };
 
@@ -111,6 +135,62 @@ export default function TrainingMonitor() {
         <div className="min-h-screen bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-100 p-8">
             <Toaster position="top-right" richColors />
 
+            {/* Reset Confirmation Dialog */}
+            {showResetConfirm && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => !resetting && setShowResetConfirm(false)}
+                >
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <XCircle className="text-red-600" size={32} />
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">Reset All Data?</h3>
+                            <p className="text-gray-600 mb-6">
+                                This will permanently delete <strong>all employees</strong> and <strong>all training requests</strong>.
+                                This action cannot be undone!
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowResetConfirm(false)}
+                                    disabled={resetting}
+                                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors disabled:opacity-50"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleReset}
+                                    disabled={resetting}
+                                    className="flex-1 px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {resetting ? (
+                                        <>
+                                            <RefreshCw className="animate-spin" size={18} />
+                                            Resetting...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <XCircle size={18} />
+                                            Yes, Reset All
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -132,15 +212,26 @@ export default function TrainingMonitor() {
                                 Last updated: {lastRefresh.toLocaleTimeString()}
                             </p>
                         </div>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => fetchRequests(true)}
-                            className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-3 rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg font-semibold"
-                        >
-                            <RefreshCw size={18} />
-                            Refresh
-                        </motion.button>
+                        <div className="flex gap-3">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => fetchRequests(true)}
+                                className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-3 rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg font-semibold"
+                            >
+                                <RefreshCw size={18} />
+                                Refresh
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => setShowResetConfirm(true)}
+                                className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-5 py-3 rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg font-semibold"
+                            >
+                                <XCircle size={18} />
+                                Reset All Data
+                            </motion.button>
+                        </div>
                     </div>
 
                     {/* Stats Cards */}
@@ -191,8 +282,8 @@ export default function TrainingMonitor() {
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => setFilter(btn.value)}
                                     className={`px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 ${filter === btn.value
-                                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
-                                            : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg border border-gray-200'
+                                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
+                                        : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md hover:shadow-lg border border-gray-200'
                                         }`}
                                 >
                                     <Icon size={16} />
