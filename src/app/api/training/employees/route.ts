@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
             const row: any = jsonData[i];
 
             // Validate required fields (flexible column names)
-            const employeeId = row['Employee ID'] || row['EmployeeID'] || row['ID'] || row['employee_id'];
-            const name = row['Name'] || row['Employee Name'] || row['name'];
-            const location = row['Location'] || row['location'];
-            const trainingLevel = row['Training Level'] || row['Training Levels'] || row['TrainingLevel'] || row['Level'];
+            const employeeId = row['Employee ID'] || row['EmployeeID'] || row['ID'] || row['employee_id'] || row['Emp ID'];
+            const name = row['Name'] || row['Employee Name'] || row['name'] || row['EmployeeName'];
+            const location = row['Location'] || row['location'] || row['Dealer Location'] || row['DealerLocation'] || row['City'];
+            const trainingLevel = row['Training Level'] || row['Training Levels'] || row['TrainingLevel'] || row['Level'] || row['Training_Level'];
 
             if (!employeeId || !name || !location || !trainingLevel) {
                 errors.push(`Row ${i + 2}: Missing required fields (Employee ID, Name, Location, or Training Level)`);
@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
             }
 
             // Extract additional fields
-            const department = row['Department'] || row['department'] || null;
-            const designation = row['Designation'] || row['designation'] || null;
+            const department = row['Department'] || row['department'] || row['Employee Category'] || null;
+            const designation = row['Designation'] || row['designation'] || row['Employee Designation'] || null;
             const email = row['Email'] || row['email'] || null;
-            const phone = row['Phone'] || row['phone'] || row['Contact'] || null;
+            const phone = row['Phone'] || row['phone'] || row['Contact'] || row['Mobile No'] || row['MobileNo'] || null;
             const region = row['Region'] || row['region'] || null;
 
             // Store additional data as JSON
