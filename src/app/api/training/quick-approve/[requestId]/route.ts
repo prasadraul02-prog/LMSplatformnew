@@ -34,10 +34,17 @@ export async function GET(
 
         const firstRequest = requests[0];
 
+        if (!firstRequest.workshopManager) {
+            return NextResponse.json(
+                { error: 'Workshop Manager not found' },
+                { status: 404 }
+            );
+        }
+
         // Get all pending requests for the same location and WM
         const allRequests = await prisma.trainingRequest.findMany({
             where: {
-                workshopManagerId: firstRequest.workshopManagerId,
+                wmId: firstRequest.wmId,
                 status: 'SENT',
             },
             include: {
