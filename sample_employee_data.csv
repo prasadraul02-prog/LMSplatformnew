@@ -1,0 +1,16 @@
+Employee ID,Name,Department,Designation,Location,Email,Phone,Training Level,Region
+EMP001,John Doe,Engineering,Software Engineer,Mumbai,john.doe@company.com,9876543210,UNTRAINED,West
+EMP002,Jane Smith,HR,HR Manager,Delhi,jane.smith@company.com,9876543211,BASIC,North
+EMP003,Bob Johnson,Sales,Sales Executive,Bangalore,bob.johnson@company.com,9876543212,UNTRAINED,South
+EMP004,Alice Williams,Marketing,Marketing Lead,Mumbai,alice.williams@company.com,9876543213,ADVANCE,West
+EMP005,Charlie Brown,Engineering,Senior Engineer,Pune,charlie.brown@company.com,9876543214,EXPERT,West
+EMP006,David Miller,Finance,Accountant,Delhi,david.miller@company.com,9876543215,UNTRAINED,North
+EMP007,Emma Davis,IT,System Admin,Bangalore,emma.davis@company.com,9876543216,BASIC,South
+EMP008,Frank Wilson,Operations,Operations Manager,Chennai,frank.wilson@company.com,9876543217,UNTRAINED,South
+EMP009,Grace Taylor,Engineering,Junior Developer,Mumbai,grace.taylor@company.com,9876543218,UNTRAINED,West
+EMP010,Henry Anderson,Sales,Sales Manager,Hyderabad,henry.anderson@company.com,9876543219,ADVANCE,South
+EMP011,Isabelle Thomas,HR,HR Executive,Delhi,isabelle.thomas@company.com,9876543220,UNTRAINED,North
+EMP012,Jack Martinez,Engineering,DevOps Engineer,Bangalore,jack.martinez@company.com,9876543221,BASIC,South
+EMP013,Karen Garcia,Marketing,Content Writer,Pune,karen.garcia@company.com,9876543222,UNTRAINED,West
+EMP014,Leo Rodriguez,Finance,Financial Analyst,Mumbai,leo.rodriguez@company.com,9876543223,EXPERT,West
+EMP015,Monica Lee,IT,Network Engineer,Delhi,monica.lee@company.com,9876543224,UNTRAINED,North

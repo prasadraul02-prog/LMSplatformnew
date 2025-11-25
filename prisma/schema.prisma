@@ -175,3 +175,76 @@ model TrainingRule {
   course        Course       @relation(fields: [courseId], references: [id])
   createdAt     DateTime     @default(now())
 }
+
+// ===== Training Management System Models =====
+
+model Employee {
+  id              String            @id @default(cuid())
+  employeeId      String            @unique
+  name            String
+  location        String
+  trainingLevel   String            @default("UNTRAINED") // UNTRAINED, BASIC, ADVANCE, EXPERT
+  department      String?
+  designation     String?
+  email           String?
+  phone           String?
+  region          String?
+  // Excel columns 1-8 (flexible JSON field for additional data)
+  additionalData  String?           // JSON string for extra columns
+  uploadBatchId   String?
+  uploadedAt      DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  trainingRequests TrainingRequest[]
+  
+  @@index([location])
+  @@index([trainingLevel])
+}
+
+model WorkshopManager {
+  id              String            @id @default(cuid())
+  name            String
+  email           String            @unique
+  location        String
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  trainingRequests TrainingRequest[]
+  
+  @@index([location])
+  @@index([email])
+}
+
+model TrainingRequest {
+  id                String           @id @default(cuid())
+  employeeId        String
+  employee          Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  originalLocation  String
+  trainingLocation  String
+  wmId              String?
+  workshopManager   WorkshopManager? @relation(fields: [wmId], references: [id])
+  status            String           @default("PENDING") // PENDING, SENT, APPROVED, REJECTED
+  approveToken      String?          @unique
+  rejectToken       String?          @unique
+  requestSentAt     DateTime?
+  respondedAt       DateTime?
+  batchId           String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  @@index([status])
+  @@index([batchId])
+  @@index([wmId])
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  region      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  @@index([name])
+}

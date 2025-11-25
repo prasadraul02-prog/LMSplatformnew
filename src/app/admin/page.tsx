@@ -57,6 +57,43 @@ export default async function AdminDashboard() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Training Management Section */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-bold tracking-tight mb-4">Training Management</h2>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/admin/training-upload'}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Excel Upload</CardTitle>
+                            <BookOpen className="h-4 w-4 text-purple-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-lg font-semibold text-purple-600">Upload Employees</div>
+                            <p className="text-xs text-muted-foreground">Bulk import employee training data</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/admin/training-monitor'}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Training Monitor</CardTitle>
+                            <Users className="h-4 w-4 text-indigo-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-lg font-semibold text-indigo-600">View Requests</div>
+                            <p className="text-xs text-muted-foreground">Real-time approval tracking</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => window.location.href = '/admin/workshop-managers'}>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Workshop Managers</CardTitle>
+                            <UserPlus className="h-4 w-4 text-blue-600" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-lg font-semibold text-blue-600">Configure WMs</div>
+                            <p className="text-xs text-muted-foreground">Manage location managers</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }

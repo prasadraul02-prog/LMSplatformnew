@@ -1,0 +1,38 @@
+# Environment Variables Template for Training Management System
+
+# ========================================
+# DATABASE
+# ========================================
+DATABASE_URL="postgresql://user:password@host:5432/database"
+
+# ========================================
+# SMTP EMAIL CONFIGURATION (ZIMBRA)
+# ========================================
+# Your Zimbra mail server hostname
+SMTP_HOST="mail.yourcompany.com"
+
+# SMTP port (587 for TLS, 465 for SSL)
+SMTP_PORT=587
+
+# Set to "true" for SSL (port 465), "false" for TLS (port 587)
+SMTP_SECURE="false"
+
+# Email account for sending training approval requests
+SMTP_USER="training-system@yourcompany.com"
+
+# Email account password
+SMTP_PASSWORD="your_email_password_here"
+
+# ========================================
+# APPLICATION URL
+# ========================================
+# Base URL for approval/rejection links in emails
+# For development: http://localhost:3000
+# For production: https://yourdomain.com
+NEXT_PUBLIC_BASE_URL="http://localhost:3000"
+
+# ========================================
+# NEXT AUTH (if you have authentication configured)
+# ========================================
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
