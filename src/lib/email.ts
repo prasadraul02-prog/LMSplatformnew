@@ -53,10 +53,16 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.location}</td>
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.email || 'N/A'}</td>
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.phone || 'N/A'}</td>
-      <td style="padding: 12px; border: 1px solid #ddd; text-transform: uppercase; text-align: center;">
-        <span style="background-color: #ff9800; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold;">
-          ${emp.trainingLevel}
-        </span>
+      <td style="padding: 12px; border: 1px solid #ddd; text-transform: uppercase;">${emp.trainingLevel}</td>
+      <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
+        <a href="${baseUrl}/api/training/action/${emp.approveToken}/approve" 
+           style="display: inline-block; padding: 8px 16px; margin: 4px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          Approve
+        </a>
+        <a href="${baseUrl}/api/training/action/${emp.rejectToken}/reject" 
+           style="display: inline-block; padding: 8px 16px; margin: 4px; background-color: #f44336; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+          Reject
+        </a>
       </td>
     </tr>
   `
@@ -88,16 +94,14 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
       ${employees.length > 1 ? 'require' : 'requires'} your approval for basic training:
     </p>
     
-    <!-- Quick Approve Button - PRIMARY ACTION -->
-    <div style="text-align: center; margin: 30px 0; padding: 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; box-shadow: 0 4px 15px rgba(102,126,234,0.4);">
-      <p style="color: white; margin: 0 0 8px 0; font-size: 22px; font-weight: bold;">⚡ Click Here to Start Approvals</p>
+    <!-- Quick Approve Button - OPTIONAL -->
+    <div style="text-align: center; margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px;">
+      <p style="color: white; margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">⚡ Rapid Fire Mode (Optional)</p>
       <a href="${baseUrl}/training/quick-approve/${quickApproveToken}" 
-         style="display: inline-block; padding: 18px 50px; background-color: white; color: #667eea; text-decoration: none; border-radius: 10px; font-weight: bold; font-size: 20px; box-shadow: 0 6px 20px rgba(0,0,0,0.3); margin: 10px 0;">
-        🚀 Quick Approve All
+         style="display: inline-block; padding: 15px 40px; background-color: white; color: #667eea; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">
+        🚀 Quick Approve All (With Keyboard Shortcuts)
       </a>
-      <p style="color: white; margin: 12px 0 0 0; font-size: 15px; opacity: 0.95;">
-        ✨ Instant inline processing • No new tabs • Keyboard shortcuts (A/R keys) • Progress tracking
-      </p>
+      <p style="color: white; margin: 15px 0 0 0; font-size: 14px; opacity: 0.9;">Process all employees quickly with A/R keys!</p>
     </div>
     
     <div style="overflow-x: auto; margin: 20px 0;">
@@ -111,7 +115,8 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
             <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: left;">Location</th>
             <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: left;">Email</th>
             <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: left;">Phone</th>
-            <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: center;">Status</th>
+            <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: left;">Current Level</th>
+            <th style="padding: 12px; border: 1px solid #ddd; color: white; text-align: center;">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -120,15 +125,10 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
       </table>
     </div>
     
-    <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-left: 5px solid #2196F3; border-radius: 8px; box-shadow: 0 2px 8px rgba(33,150,243,0.2);">
-      <p style="margin: 0; font-size: 15px; line-height: 1.8;">
-        <strong style="font-size: 16px;">💡 How It Works:</strong><br>
-        Click the "Quick Approve All" button above to open the approval interface. You'll see each employee one at a time with:<br>
-        • <strong>Instant inline processing</strong> - No new tabs or page reloads<br>
-        • <strong>Real-time status updates</strong> - See "Processing..." then "✓ Approved" or "✗ Rejected" immediately<br>
-        • <strong>Keyboard shortcuts</strong> - Press A to approve, R to reject for rapid-fire processing<br>
-        • <strong>Progress tracking</strong> - See how many employees remain<br><br>
-        <em>Process all ${employees.length} employees in under a minute!</em>
+    <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
+      <p style="margin: 0; font-size: 14px;">
+        <strong>Note:</strong> Click Approve or Reject for each employee individually, 
+        or use the Quick Approve button above for rapid-fire processing with keyboard shortcuts.
       </p>
     </div>
     
