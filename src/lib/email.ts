@@ -44,8 +44,8 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
 
   const employeeRows = employees
     .map(
-      (emp) => `
-    <tr>
+      (emp, index) => `
+    <tr id="row-${index}">
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.employeeId}</td>
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.name}</td>
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.department || 'N/A'}</td>
@@ -54,15 +54,15 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.email || 'N/A'}</td>
       <td style="padding: 12px; border: 1px solid #ddd;">${emp.phone || 'N/A'}</td>
       <td style="padding: 12px; border: 1px solid #ddd; text-transform: uppercase;">${emp.trainingLevel}</td>
-      <td style="padding: 12px; border: 1px solid #ddd; text-align: center;">
-        <a href="${baseUrl}/api/training/action/${emp.approveToken}/approve" 
-           style="display: inline-block; padding: 8px 16px; margin: 4px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+      <td id="action-${index}" style="padding: 12px; border: 1px solid #ddd; text-align: center;">
+        <button onclick="handleAction('${emp.approveToken}', 'approve', ${index})" 
+           style="padding: 8px 16px; margin: 4px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
           Approve
-        </a>
-        <a href="${baseUrl}/api/training/action/${emp.rejectToken}/reject" 
-           style="display: inline-block; padding: 8px 16px; margin: 4px; background-color: #f44336; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+        </button>
+        <button onclick="handleAction('${emp.rejectToken}', 'reject', ${index})" 
+           style="padding: 8px 16px; margin: 4px; background-color: #f44336; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
           Reject
-        </a>
+        </button>
       </td>
     </tr>
   `
@@ -76,6 +76,40 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Training Approval Request</title>
+  <script>
+    async function handleAction(token, action, rowIndex) {
+      const actionCell = document.getElementById('action-' + rowIndex);
+      const row = document.getElementById('row-' + rowIndex);
+      
+      // Show loading state
+      actionCell.innerHTML = '<span style="color: #666; font-style: italic;">Processing...</span>';
+      
+      try {
+        const response = await fetch('${baseUrl}/api/training/action/' + token + '/' + action, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          // Success - show status badge
+          const bgColor = action === 'approve' ? '#4CAF50' : '#f44336';
+          const statusText = action === 'approve' ? '✓ APPROVED' : '✗ REJECTED';
+          actionCell.innerHTML = '<span style="display: inline-block; padding: 8px 16px; background-color: ' + bgColor + '; color: white; border-radius: 4px; font-weight: bold;">' + statusText + '</span>';
+          row.style.backgroundColor = action === 'approve' ? '#e8f5e9' : '#ffebee';
+        } else {
+          // Error - show message and restore buttons
+          actionCell.innerHTML = '<span style="color: #f44336; font-size: 12px;">Error: ' + (result.error || 'Action failed') + '</span><br><button onclick="location.reload()" style="margin-top: 8px; padding: 4px 12px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>';
+        }
+      } catch (error) {
+        // Network error
+        actionCell.innerHTML = '<span style="color: #f44336; font-size: 12px;">Network error. Please try again.</span><br><button onclick="location.reload()" style="margin-top: 8px; padding: 4px 12px; background-color: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;">Retry</button>';
+      }
+    }
+  </script>
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
@@ -114,8 +148,8 @@ const generateApprovalEmailHTML = (options: ApprovalEmailOptions): string => {
     
     <div style="margin-top: 30px; padding: 15px; background-color: #e3f2fd; border-left: 4px solid #2196F3; border-radius: 4px;">
       <p style="margin: 0; font-size: 14px;">
-        <strong>Note:</strong> Each approval/rejection is individual. Click the appropriate button for each employee. 
-        Approving will schedule the employee for basic training at your location.
+        <strong>Note:</strong> Click Approve or Reject for each employee. The status will update instantly in the Action column. 
+        No need to wait for page reloads - you can process all employees quickly!
       </p>
     </div>
     
@@ -162,7 +196,7 @@ export const sendActionConfirmationEmail = async (
 ): Promise<void> => {
   try {
     const transporter = createTransporter();
-    
+
     const actionColor = action === 'approved' ? '#4CAF50' : '#f44336';
     const actionText = action === 'approved' ? 'Approved' : 'Rejected';
 
