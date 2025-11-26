@@ -56,9 +56,191 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html {
     scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile viewport optimization */
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+    }
+    
+    body {
+      overscroll-behavior-y: none;
+    }
+  }
+
+  /* Smooth theme transitions */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Glassmorphism Effects */
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-strong {
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  }
+
+  /* Ambient Glow Effects */
+  .glow-primary {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3),
+                0 0 40px rgba(139, 92, 246, 0.1);
+  }
+
+  .glow-primary-strong {
+    box-shadow: 0 0 30px rgba(139, 92, 246, 0.5),
+                0 0 60px rgba(139, 92, 246, 0.2);
+  }
+
+  .dark .glow-primary {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.4),
+                0 0 50px rgba(139, 92, 246, 0.15);
+  }
+
+  /* Floating Animation */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  /* Shimmer Effect for Skeletons */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0.5) 60%,
+      rgba(255, 255, 255, 0)
+    );
+    animation: shimmer 2s infinite;
+    background-size: 200% 100%;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  /* Touch-friendly minimum sizes */
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Smooth scroll snap for mobile */
+  .scroll-snap-x {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scroll-snap-child {
+    scroll-snap-align: start;
+  }
+
+  /* Gradient mesh backgrounds */
+  .gradient-mesh {
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(262.1 70% 40%) 50%, 
+      hsl(220 70% 50%) 100%
+    );
+  }
+
+  .gradient-mesh-animated {
+    background: linear-gradient(
+      -45deg,
+      hsl(var(--primary)),
+      hsl(262.1 70% 40%),
+      hsl(220 70% 50%),
+      hsl(280 70% 45%)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Elevated cards with ambient shadow */
+  .elevated {
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.05),
+      0 10px 15px -3px rgba(0, 0, 0, 0.05),
+      0 4px 6px -2px rgba(0, 0, 0, 0.03);
+  }
+
+  .elevated-lg {
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.05),
+      0 20px 25px -5px rgba(0, 0, 0, 0.08),
+      0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  }
+
+  .dark .elevated,
+  .dark .elevated-lg {
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 20px 25px -5px rgba(0, 0, 0, 0.4),
+      0 10px 10px -5px rgba(0, 0, 0, 0.2);
   }
 }

@@ -9,21 +9,36 @@ export default auth((req) => {
         req.nextUrl.pathname.startsWith('/employee')
     const isOnLogin = req.nextUrl.pathname.startsWith('/login')
 
+    // Create response
+    let response: NextResponse;
+
     if (isOnDashboard) {
-        if (isLoggedIn) return NextResponse.next()
-        return NextResponse.redirect(new URL('/login', req.nextUrl))
-    }
-
-    if (isOnLogin) {
         if (isLoggedIn) {
-            return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+            response = NextResponse.next();
+        } else {
+            response = NextResponse.redirect(new URL('/login', req.nextUrl));
         }
-        return NextResponse.next()
+    } else if (isOnLogin) {
+        if (isLoggedIn) {
+            response = NextResponse.redirect(new URL('/dashboard', req.nextUrl));
+        } else {
+            response = NextResponse.next();
+        }
+    } else {
+        response = NextResponse.next();
     }
 
-    return NextResponse.next()
+    // Add security headers to all responses
+    response.headers.set('X-DNS-Prefetch-Control', 'on');
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+    return response;
 })
 
 export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|sw.js|manifest.json).*)'],
 }
