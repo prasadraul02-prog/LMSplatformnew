@@ -64,21 +64,30 @@ export default function CreateQuizPage() {
                 maxAttempts: formData.maxAttempts ? parseInt(formData.maxAttempts) : null
             };
 
+            console.log('Submitting quiz:', payload);
+
             const res = await fetch('/api/quiz', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            if (res.ok) {
-                const quiz = await res.json();
+            console.log('Response status:', res.status);
+            const data = await res.json();
+            console.log('Response data:', data);
+
+            if (res.ok && data.id) {
                 toast.success('Quiz created successfully!');
-                router.push(`/admin/quizzes/${quiz.id}/edit`);
+                console.log('Navigating to:', `/admin/quizzes/${data.id}/edit`);
+                router.push(`/admin/quizzes/${data.id}/edit`);
             } else {
-                toast.error('Failed to create quiz');
+                const errorMsg = data.error || 'Failed to create quiz';
+                toast.error(errorMsg);
+                console.error('Quiz creation failed:', data);
             }
         } catch (error) {
-            toast.error('Failed to create quiz');
+            console.error('Error creating quiz:', error);
+            toast.error('Failed to create quiz. Please try again.');
         } finally {
             setLoading(false);
         }
