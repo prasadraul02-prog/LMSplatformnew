@@ -4,50 +4,71 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
+    --background: 0 0% 100%; /* #ffffff */
+    --foreground: 222.2 84% 4.9%; /* Keep dark text for readability */
+    
+    --card: 0 0% 100%; /* #ffffff */
     --card-foreground: 222.2 84% 4.9%;
+    
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    /* Professional Enterprise Blue */
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+    
+    /* User Custom Palette: #99b4d6 (Darkest Blue provided) */
+    --primary: 213 41% 72%;
+    --primary-foreground: 222.2 47.4% 11.2%; /* Dark text on light button */
+    
+    /* #ccdaeb */
+    --secondary: 213 45% 86%;
     --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
+    
+    /* #b3c7e1 */
+    --muted: 214 41% 79%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    
+    /* #a6bedc */
+    --accent: 213 42% 76%;
     --accent-foreground: 222.2 47.4% 11.2%;
+    
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    
+    /* #ccdaeb */
+    --border: 213 45% 86%;
+    --input: 213 45% 86%;
+    --ring: 213 41% 72%;
+    
     --radius: 0.5rem;
   }
 
   .dark {
+    /* Adapted dark mode for pastel theme - keeping it dark but tinted blue */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
+    
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
+    
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    /* Deep Navy for Dark Mode */
-    --primary: 217.2 91.2% 59.8%;
+    
+    --primary: 213 41% 72%; /* Keep same primary */
     --primary-foreground: 222.2 47.4% 11.2%;
+    
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+    
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
+    
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+    
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 213 41% 72%;
   }
 }
 
@@ -72,7 +93,7 @@
     html {
       -webkit-text-size-adjust: 100%;
     }
-
+    
     body {
       overscroll-behavior-y: none;
     }
@@ -87,7 +108,6 @@
 
   /* Respect reduced motion preference */
   @media (prefers-reduced-motion: reduce) {
-
     *,
     *::before,
     *::after {
@@ -100,7 +120,6 @@
 }
 
 @layer utilities {
-
   /* Glassmorphism Effects */
   .glass {
     background: rgba(255, 255, 255, 0.1);
@@ -124,20 +143,20 @@
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
   }
 
-  /* Ambient Glow Effects - Updated to Blue */
+  /* Ambient Glow Effects - Updated to User's Pastel Blue #99b4d6 */
   .glow-primary {
-    box-shadow: 0 0 20px rgba(37, 99, 235, 0.3),
-      0 0 40px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 20px rgba(153, 180, 214, 0.4),
+                0 0 40px rgba(153, 180, 214, 0.2);
   }
 
   .glow-primary-strong {
-    box-shadow: 0 0 30px rgba(37, 99, 235, 0.5),
-      0 0 60px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 0 30px rgba(153, 180, 214, 0.6),
+                0 0 60px rgba(153, 180, 214, 0.3);
   }
 
   .dark .glow-primary {
-    box-shadow: 0 0 25px rgba(59, 130, 246, 0.4),
-      0 0 50px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 25px rgba(153, 180, 214, 0.4),
+                0 0 50px rgba(153, 180, 214, 0.15);
   }
 
   /* Floating Animation */
@@ -146,12 +165,9 @@
   }
 
   @keyframes float {
-
-    0%,
-    100% {
+    0%, 100% {
       transform: translateY(0px);
     }
-
     50% {
       transform: translateY(-20px);
     }
@@ -159,11 +175,13 @@
 
   /* Shimmer Effect for Skeletons */
   .shimmer {
-    background: linear-gradient(90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.2) 20%,
-        rgba(255, 255, 255, 0.5) 60%,
-        rgba(255, 255, 255, 0));
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.2) 20%,
+      rgba(255, 255, 255, 0.5) 60%,
+      rgba(255, 255, 255, 0)
+    );
     animation: shimmer 2s infinite;
     background-size: 200% 100%;
   }
@@ -172,7 +190,6 @@
     0% {
       background-position: -200% 0;
     }
-
     100% {
       background-position: 200% 0;
     }
@@ -196,18 +213,21 @@
 
   /* Gradient mesh backgrounds */
   .gradient-mesh {
-    background: linear-gradient(135deg,
-        hsl(var(--primary)) 0%,
-        hsl(262.1 70% 40%) 50%,
-        hsl(220 70% 50%) 100%);
+    background: linear-gradient(135deg, 
+      hsl(var(--primary)) 0%, 
+      hsl(213 45% 86%) 50%, 
+      hsl(214 41% 79%) 100%
+    );
   }
 
   .gradient-mesh-animated {
-    background: linear-gradient(-45deg,
-        hsl(var(--primary)),
-        hsl(262.1 70% 40%),
-        hsl(220 70% 50%),
-        hsl(280 70% 45%));
+    background: linear-gradient(
+      -45deg,
+      hsl(var(--primary)),
+      hsl(213 45% 86%),
+      hsl(214 41% 79%),
+      hsl(213 42% 76%)
+    );
     background-size: 400% 400%;
     animation: gradient-shift 15s ease infinite;
   }
@@ -216,11 +236,9 @@
     0% {
       background-position: 0% 50%;
     }
-
     50% {
       background-position: 100% 50%;
     }
-
     100% {
       background-position: 0% 50%;
     }
@@ -228,14 +246,14 @@
 
   /* Elevated cards with ambient shadow */
   .elevated {
-    box-shadow:
+    box-shadow: 
       0 1px 3px rgba(0, 0, 0, 0.05),
       0 10px 15px -3px rgba(0, 0, 0, 0.05),
       0 4px 6px -2px rgba(0, 0, 0, 0.03);
   }
 
   .elevated-lg {
-    box-shadow:
+    box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.05),
       0 20px 25px -5px rgba(0, 0, 0, 0.08),
       0 10px 10px -5px rgba(0, 0, 0, 0.02);
@@ -243,7 +261,7 @@
 
   .dark .elevated,
   .dark .elevated-lg {
-    box-shadow:
+    box-shadow: 
       0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 20px 25px -5px rgba(0, 0, 0, 0.4),
       0 10px 10px -5px rgba(0, 0, 0, 0.2);
