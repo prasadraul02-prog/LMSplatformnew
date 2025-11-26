@@ -1,0 +1,11 @@
+Question,Option1,Option2,Option3,Option4,CorrectAnswer,Explanation,Points
+"What is the capital of France?",London,Paris,Berlin,Madrid,2,"Paris is the capital and most populous city of France.",1
+"Which programming language is known for web development?",Python,JavaScript,Java,C++,JavaScript,"JavaScript is primarily used for web development, both frontend and backend.",1
+"What does HTML stand for?","Hyper Text Markup Language","High Tech Modern Language","Home Tool Markup Language","Hyperlinks and Text Markup Language",1,"HTML stands for Hyper Text Markup Language, the standard markup language for web pages.",1
+"Which of the following is a database management system?",Photoshop,MySQL,Excel,Word,2,"MySQL is a relational database management system.",1
+"What is 5 + 7?",10,11,12,13,3,"5 plus 7 equals 12.",1
+"Which planet is known as the Red Planet?",Venus,Mars,Jupiter,Saturn,2,"Mars is known as the Red Planet due to its reddish appearance.",1
+"Who wrote 'Romeo and Juliet'?","Charles Dickens","William Shakespeare","Jane Austen","Mark Twain",2,"William Shakespeare wrote the famous tragedy Romeo and Juliet.",1
+"What is the chemical symbol for water?",O2,H2O,CO2,NaCl,2,"H2O is the chemical formula for water (two hydrogen atoms and one oxygen atom).",1
+"Which country hosted the 2016 Summer Olympics?",China,UK,Brazil,Japan,3,"Brazil hosted the 2016 Summer Olympics in Rio de Janeiro.",1
+"What is the largest mammal in the world?","African Elephant","Blue Whale","Giraffe","Polar Bear",2,"The Blue Whale is the largest animal ever known to have lived on Earth.",1

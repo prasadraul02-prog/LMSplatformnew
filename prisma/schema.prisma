@@ -239,6 +239,133 @@ model TrainingRequest {
   @@index([wmId])
 }
 
+// ===== Standalone Quiz System Models =====
+
+model StandaloneQuiz {
+  id                String         @id @default(cuid())
+  title             String
+  description       String?
+  instructions      String?
+  timeLimit         Int?           // In minutes
+  passScore         Int            @default(70) // Percentage
+  shuffleQuestions  Boolean        @default(false)
+  shuffleOptions    Boolean        @default(false)
+  showResults       Boolean        @default(true)
+  showAnswers       Boolean        @default(true)
+  allowReview       Boolean        @default(true)
+  maxAttempts       Int?           // null = unlimited
+  isActive          Boolean        @default(true)
+  createdBy         String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  questions         QuizQuestion[]
+  links             QuizLink[]
+  attempts          QuizAttempt[]
+  
+  @@index([createdBy])
+  @@index([isActive])
+}
+
+model QuizQuestion {
+  id            String         @id @default(cuid())
+  quizId        String
+  text          String         @db.Text
+  imageUrl      String?
+  explanation   String?        @db.Text
+  points        Int            @default(1)
+  order         Int
+  questionType  String         @default("SINGLE") // SINGLE, MULTIPLE
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  quiz          StandaloneQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options       QuizOption[]
+  answers       QuizAnswer[]
+  
+  @@index([quizId])
+  @@index([order])
+}
+
+model QuizOption {
+  id          String       @id @default(cuid())
+  questionId  String
+  text        String       @db.Text
+  imageUrl    String?
+  isCorrect   Boolean      @default(false)
+  order       Int
+  
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers     QuizAnswer[]
+  
+  @@index([questionId])
+}
+
+model QuizLink {
+  id              String         @id @default(cuid())
+  quizId          String
+  linkCode        String         @unique // Unique shareable code
+  name            String?        // Optional name for the link
+  isEnabled       Boolean        @default(true)
+  maxUses         Int?           // null = unlimited
+  currentUses     Int            @default(0)
+  expiresAt       DateTime?
+  autoDisable     Boolean        @default(false) // Auto-disable after time limit
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  quiz            StandaloneQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  attempts        QuizAttempt[]
+  
+  @@index([quizId])
+  @@index([linkCode])
+  @@index([isEnabled])
+}
+
+model QuizAttempt {
+  id              String         @id @default(cuid())
+  quizId          String
+  linkId          String?
+  employeeName    String
+  employeeEmail   String
+  employeeId      String?        // Optional employee ID
+  score           Int
+  totalPoints     Int
+  percentage      Float
+  passed          Boolean
+  timeSpent       Int?           // In seconds
+  startedAt       DateTime
+  submittedAt     DateTime       @default(now())
+  ipAddress       String?
+  userAgent       String?
+  
+  quiz            StandaloneQuiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  link            QuizLink?      @relation(fields: [linkId], references: [id])
+  answers         QuizAnswer[]
+  
+  @@index([quizId])
+  @@index([linkId])
+  @@index([employeeEmail])
+  @@index([submittedAt])
+}
+
+model QuizAnswer {
+  id          String       @id @default(cuid())
+  attemptId   String
+  questionId  String
+  optionId    String?      // null if question was skipped
+  isCorrect   Boolean      @default(false)
+  timeSpent   Int?         // In seconds
+  createdAt   DateTime     @default(now())
+  
+  attempt     QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question    QuizQuestion @relation(fields: [questionId], references: [id])
+  option      QuizOption?  @relation(fields: [optionId], references: [id])
+  
+  @@index([attemptId])
+  @@index([questionId])
+}
+
 model Location {
   id          String   @id @default(cuid())
   name        String   @unique

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
@@ -15,7 +16,8 @@ import {
     X,
     Bell,
     GraduationCap,
-    User
+    User,
+    FileQuestion
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -40,6 +42,7 @@ export default function DashboardLayout({
             { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
             { href: "/admin/users", label: "Users", icon: Users },
             { href: "/admin/courses", label: "Courses", icon: BookOpen },
+            { href: "/admin/quizzes", label: "Quizzes", icon: FileQuestion },
             { href: "/admin/reports", label: "Reports", icon: FileText },
             { href: "/admin/automation", label: "Automation", icon: Settings },
         ],
@@ -56,6 +59,10 @@ export default function DashboardLayout({
     };
 
     const items = navItems[role] || [];
+
+    const handleLogout = async () => {
+        await signOut({ callbackUrl: '/login' });
+    };
 
     return (
         <div className="min-h-screen bg-background flex">
@@ -128,7 +135,7 @@ export default function DashboardLayout({
                     <Button
                         variant="ghost"
                         className={cn("w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10 touch-target", !isSidebarOpen && "lg:justify-center lg:px-2")}
-                        onClick={() => {/* Handle logout */ }}
+                        onClick={handleLogout}
                     >
                         <LogOut className="h-5 w-5 flex-shrink-0" />
                         <span className={cn("ml-3 transition-opacity duration-200", !isSidebarOpen && "lg:opacity-0 lg:w-0 lg:overflow-hidden")}>
