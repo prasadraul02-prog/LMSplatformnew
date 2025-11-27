@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/components/providers";
 import { RegisterServiceWorker } from "@/components/register-sw";
 import { Toaster } from "sonner";
 
@@ -44,11 +44,11 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" href="/icon-192.png" />
             </head>
             <body className={inter.className}>
-                <ThemeProvider>
+                <Providers attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                     <RegisterServiceWorker />
                     <Toaster position="top-center" richColors />
                     {children}
-                </ThemeProvider>
+                </Providers>
             </body>
         </html>
     );
