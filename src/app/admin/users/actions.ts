@@ -70,6 +70,42 @@ export async function deleteUser(id: string) {
     }
 }
 
+export async function resetUserPassword(userId: string) {
+    try {
+        // Generate a random password
+        const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        const hashedPassword = await bcrypt.hash(newPassword, 4);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword }
+        });
+
+        revalidatePath('/admin/users');
+        return { success: true, password: newPassword };
+    } catch (error) {
+        return { error: "Failed to reset password" };
+    }
+}
+
+export async function updateUser(userId: string, data: { name?: string; email?: string; role?: string }) {
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                ...(data.name && { name: data.name }),
+                ...(data.email && { email: data.email }),
+                ...(data.role && { role: data.role }),
+            }
+        });
+
+        revalidatePath('/admin/users');
+        return { success: true, message: "User updated successfully" };
+    } catch (error) {
+        return { error: "Failed to update user" };
+    }
+}
+
 export async function importUsers(prevState: any, formData: FormData) {
     const file = formData.get('file') as File;
 
