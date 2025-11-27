@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { HorizontalNav } from "@/components/admin/horizontal-nav";
 
 export default async function AdminLayout({
     children,
@@ -14,9 +14,11 @@ export default async function AdminLayout({
     }
 
     return (
-        <DashboardLayout role="ADMIN" userEmail={session.user.email || undefined}>
-            {children}
-        </DashboardLayout>
+        <div className="min-h-screen bg-background flex flex-col">
+            <HorizontalNav />
+            <main className="flex-1 container py-6">
+                {children}
+            </main>
+        </div>
     );
 }
-

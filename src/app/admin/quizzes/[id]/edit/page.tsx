@@ -327,6 +327,21 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                         <Save className="h-4 w-4" />
                         {saving ? 'Saving...' : 'Save All'}
                     </Button>
+
+                    {questions.length > 0 && (
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (confirm('Are you sure you want to delete ALL questions? This action cannot be undone.')) {
+                                    setQuestions([]);
+                                }
+                            }}
+                            className="gap-2"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                            Clear All
+                        </Button>
+                    )}
                 </div>
             </div>
 
