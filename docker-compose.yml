@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/lms
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=changeme123
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+    networks:
+      - lms-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: lms-db
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=lms
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - lms-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - lms-network
+
+volumes:
+  db-data:
+  redis-data:
+
+networks:
+  lms-network:
+    driver: bridge
