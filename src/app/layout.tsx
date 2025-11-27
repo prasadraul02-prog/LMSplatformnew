@@ -16,6 +16,9 @@ export const metadata: Metadata = {
         statusBarStyle: "default",
         title: "LMS Portal",
     },
+    other: {
+        'mobile-web-app-capable': 'yes',
+    },
 };
 
 export const viewport: Viewport = {

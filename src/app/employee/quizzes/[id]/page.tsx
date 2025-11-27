@@ -40,7 +40,10 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
 
     const fetchQuiz = async () => {
         try {
-            const res = await fetch(`/api/quiz?id=${quizId}`);
+            const timestamp = new Date().getTime();
+            const res = await fetch(`/api/quiz?id=${quizId}&_t=${timestamp}`, {
+                cache: 'no-store'
+            });
             if (res.ok) {
                 const data = await res.json();
                 setQuiz(data);
@@ -56,7 +59,10 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
         setStarting(true);
         try {
             // Get or create a valid link for this quiz
-            const res = await fetch(`/api/quiz/employee-access?quizId=${quizId}`);
+            const timestamp = new Date().getTime();
+            const res = await fetch(`/api/quiz/employee-access?quizId=${quizId}&_t=${timestamp}`, {
+                cache: 'no-store'
+            });
             const data = await res.json();
 
             if (res.ok && data.linkCode) {
