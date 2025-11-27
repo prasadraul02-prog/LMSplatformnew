@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,22 +46,31 @@ interface Quiz {
     questions: QuizQuestion[];
 }
 
-export default function EditQuizPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
+export default function EditQuizPage({ params }: { params: { id: string } }) {
     const router = useRouter();
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [importingExcel, setImportingExcel] = useState(false);
+    const [quizId, setQuizId] = useState<string>('');
 
     useEffect(() => {
-        fetchQuiz();
-    }, []);
+        // Handle params properly
+        if (params?.id) {
+            setQuizId(params.id);
+        }
+    }, [params]);
+
+    useEffect(() => {
+        if (quizId) {
+            fetchQuiz();
+        }
+    }, [quizId]);
 
     const fetchQuiz = async () => {
         try {
-            const res = await fetch(`/api/quiz?id=${resolvedParams.id}`);
+            const res = await fetch(`/api/quiz?id=${quizId}`);
             if (res.ok) {
                 const data = await res.json();
                 setQuiz(data);
@@ -176,7 +184,7 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
         setImportingExcel(true);
         const formData = new FormData();
         formData.append('file', file);
-        formData.append('quizId', resolvedParams.id);
+        formData.append('quizId', quizId);
 
         try {
             const res = await fetch('/api/quiz/import', {
@@ -246,7 +254,7 @@ export default function EditQuizPage({ params }: { params: Promise<{ id: string 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    quizId: resolvedParams.id,
+                    quizId: quizId,
                     questions
                 })
             });
