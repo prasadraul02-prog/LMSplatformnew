@@ -1,44 +1,67 @@
-import { auth } from "@/lib/auth"
-import { NextResponse } from "next/server"
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default auth((req) => {
-    const isLoggedIn = !!req.auth
-    const isOnDashboard = req.nextUrl.pathname.startsWith('/dashboard') ||
-        req.nextUrl.pathname.startsWith('/admin') ||
-        req.nextUrl.pathname.startsWith('/trainer') ||
-        req.nextUrl.pathname.startsWith('/employee')
-    const isOnLogin = req.nextUrl.pathname.startsWith('/login')
+// Simple in-memory rate limiting (for basic protection)
+const rateLimit = new Map<string, { count: number; resetTime: number }>();
 
-    // Create response
-    let response: NextResponse;
+export function middleware(request: NextRequest) {
+    // Get client IP
+    const ip = request.ip || request.headers.get('x-forwarded-for') || 'anonymous';
 
-    if (isOnDashboard) {
-        if (isLoggedIn) {
-            response = NextResponse.next();
-        } else {
-            response = NextResponse.redirect(new URL('/login', req.nextUrl));
+    // Rate limiting for API routes
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+        const now = Date.now();
+        const windowMs = 60000; // 1 minute window
+        const maxRequests = 100; // 100 requests per minute
+
+        const key = `${ip}-${Math.floor(now / windowMs)}`;
+        const current = rateLimit.get(key) || { count: 0, resetTime: now + windowMs };
+
+        // Clean up old entries
+        if (current.resetTime < now) {
+            rateLimit.delete(key);
+            current.count = 0;
+            current.resetTime = now + windowMs;
         }
-    } else if (isOnLogin) {
-        if (isLoggedIn) {
-            response = NextResponse.redirect(new URL('/dashboard', req.nextUrl));
-        } else {
-            response = NextResponse.next();
+
+        current.count++;
+        rateLimit.set(key, current);
+
+        // Check if limit exceeded
+        if (current.count > maxRequests) {
+            return new NextResponse(
+                JSON.stringify({
+                    error: 'Too many requests. Please try again later.',
+                    retryAfter: Math.ceil((current.resetTime - now) / 1000)
+                }),
+                {
+                    status: 429,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Retry-After': String(Math.ceil((current.resetTime - now) / 1000)),
+                        'X-RateLimit-Limit': String(maxRequests),
+                        'X-RateLimit-Remaining': String(Math.max(0, maxRequests - current.count)),
+                        'X-RateLimit-Reset': String(current.resetTime),
+                    },
+                }
+            );
         }
-    } else {
-        response = NextResponse.next();
+
+        // Add rate limit headers to response
+        const response = NextResponse.next();
+        response.headers.set('X-RateLimit-Limit', String(maxRequests));
+        response.headers.set('X-RateLimit-Remaining', String(Math.max(0, maxRequests - current.count)));
+        response.headers.set('X-RateLimit-Reset', String(current.resetTime));
+        return response;
     }
 
-    // Add security headers to all responses
-    response.headers.set('X-DNS-Prefetch-Control', 'on');
-    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('X-XSS-Protection', '1; mode=block');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-
-    return response;
-})
-
-export const config = {
-    matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*|sw.js|manifest.json).*)'],
+    return NextResponse.next();
 }
+
+// Configure which routes use middleware
+export const config = {
+    matcher: [
+        '/api/:path*',
+        '/((?!_next/static|_next/image|favicon.ico).*)',
+    ],
+};
