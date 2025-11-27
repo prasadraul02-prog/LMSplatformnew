@@ -99,11 +99,11 @@ async function AvailableQuizzes({ userId }: { userId: string }) {
                 </div>
               )}
 
-              <Link href={`/employee/quizzes/${quiz.id}`}>
-                <Button className="w-full" variant={hasAttempted ? "outline" : "default"}>
+              <Button className="w-full" variant={hasAttempted ? "outline" : "default"} asChild>
+                <Link href={`/employee/quizzes/${quiz.id}`}>
                   {hasAttempted ? 'Retake Quiz' : 'Start Attempt'}
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </CardContent>
           </Card>
         );
