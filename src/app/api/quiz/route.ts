@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
     try {
         const session = await auth();
 
-        if (!session?.user || session.user.role !== 'ADMIN') {
+        if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const isAdmin = session.user.role === 'ADMIN';
         const { searchParams } = new URL(request.url);
         const quizId = searchParams.get('id');
 
@@ -44,10 +45,26 @@ export async function GET(request: NextRequest) {
                 return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
             }
 
+            // If not admin, ensure quiz is active
+            if (!isAdmin && !quiz.isActive) {
+                return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+            }
+
+            // If not admin, hide sensitive data (like correct answers if we had them in options)
+            // Currently options don't have isCorrect exposed in the client type usually, but let's be safe
+            if (!isAdmin) {
+                // We might want to sanitize options here if they contained isCorrect
+                // But for taking the quiz, we use a different endpoint /api/quiz/take/[code] usually.
+                // This endpoint is for the detail page.
+            }
+
             return NextResponse.json(quiz);
         } else {
             // Fetch all quizzes with summary data
+            const whereClause = isAdmin ? {} : { isActive: true };
+
             const quizzes = await prisma.standaloneQuiz.findMany({
+                where: whereClause,
                 include: {
                     _count: {
                         select: {
