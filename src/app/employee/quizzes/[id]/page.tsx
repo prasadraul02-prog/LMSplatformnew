@@ -24,7 +24,7 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
     const router = useRouter();
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [loading, setLoading] = useState(true);
-    const [links, setLinks] = useState<any[]>([]);
+    const [starting, setStarting] = useState(false);
 
     useEffect(() => {
         if (params?.id) {
@@ -44,15 +44,6 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
             if (res.ok) {
                 const data = await res.json();
                 setQuiz(data);
-
-                // Fetch available links
-                const linksRes = await fetch(`/api/quiz/links?quizId=${quizId}`);
-                if (linksRes.ok) {
-                    const linksData = await linksRes.json();
-                    // Filter to enabled links only
-                    const enabledLinks = linksData.filter((l: any) => l.isEnabled);
-                    setLinks(enabledLinks);
-                }
             }
         } catch (error) {
             console.error('Error fetching quiz:', error);
@@ -61,10 +52,23 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
         }
     };
 
-    const startQuiz = () => {
-        if (links.length > 0) {
-            // Use the first available enabled link
-            router.push(`/quiz/${links[0].linkCode}`);
+    const startQuiz = async () => {
+        setStarting(true);
+        try {
+            // Get or create a valid link for this quiz
+            const res = await fetch(`/api/quiz/employee-access?quizId=${quizId}`);
+            const data = await res.json();
+
+            if (res.ok && data.linkCode) {
+                router.push(`/quiz/${data.linkCode}`);
+            } else {
+                console.error('Failed to get quiz link:', data.error);
+                // Fallback or error handling could go here
+            }
+        } catch (error) {
+            console.error('Error starting quiz:', error);
+        } finally {
+            setStarting(false);
         }
     };
 
@@ -76,15 +80,15 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
         );
     }
 
-    if (!quiz || links.length === 0) {
+    if (!quiz) {
         return (
             <div className="max-w-2xl mx-auto">
                 <Card className="elevated">
                     <CardContent className="flex flex-col items-center justify-center py-12">
                         <FileQuestion className="h-16 w-16 text-muted-foreground mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">Quiz Not Available</h3>
+                        <h3 className="text-xl font-semibold mb-2">Quiz Not Found</h3>
                         <p className="text-muted-foreground text-center mb-6">
-                            This quiz is not currently available. Please contact your administrator.
+                            This quiz could not be found or is no longer active.
                         </p>
                         <Button onClick={() => router.push('/employee')}>
                             Back to Dashboard
@@ -172,8 +176,8 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
 
                     {/* Start Button */}
                     <div className="flex justify-center pt-4">
-                        <Button size="lg" onClick={startQuiz} className="gap-2">
-                            Start Attempt
+                        <Button size="lg" onClick={startQuiz} className="gap-2" disabled={starting}>
+                            {starting ? 'Starting...' : 'Start Attempt'}
                             <ArrowRight className="h-5 w-5" />
                         </Button>
                     </div>
