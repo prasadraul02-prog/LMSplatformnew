@@ -1,6 +1,5 @@
 'use client';
 
-import { use } from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,26 +19,34 @@ interface Quiz {
     };
 }
 
-export default function EmployeeQuizDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
+export default function EmployeeQuizDetailPage({ params }: { params: { id: string } }) {
+    const [quizId, setQuizId] = useState<string>('');
     const router = useRouter();
     const [quiz, setQuiz] = useState<Quiz | null>(null);
     const [loading, setLoading] = useState(true);
     const [links, setLinks] = useState<any[]>([]);
 
     useEffect(() => {
-        fetchQuiz();
-    }, []);
+        if (params?.id) {
+            setQuizId(params.id);
+        }
+    }, [params]);
+
+    useEffect(() => {
+        if (quizId) {
+            fetchQuiz();
+        }
+    }, [quizId]);
 
     const fetchQuiz = async () => {
         try {
-            const res = await fetch(`/api/quiz?id=${resolvedParams.id}`);
+            const res = await fetch(`/api/quiz?id=${quizId}`);
             if (res.ok) {
                 const data = await res.json();
                 setQuiz(data);
 
                 // Fetch available links
-                const linksRes = await fetch(`/api/quiz/links?quizId=${resolvedParams.id}`);
+                const linksRes = await fetch(`/api/quiz/links?quizId=${quizId}`);
                 if (linksRes.ok) {
                     const linksData = await linksRes.json();
                     // Filter to enabled links only

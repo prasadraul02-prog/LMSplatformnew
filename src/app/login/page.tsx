@@ -5,14 +5,18 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, LayoutDashboard } from "lucide-react";
+import { Loader2, LayoutDashboard, Mail } from "lucide-react";
 import Image from "next/image";
+import { toast } from "sonner";
 
 export default function LoginPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState("");
+    const [sendingForgot, setSendingForgot] = useState(false);
     const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -37,6 +41,38 @@ export default function LoginPage() {
         } catch (err) {
             setError("An error occurred. Please try again.");
             setIsLoading(false);
+        }
+    };
+
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!forgotEmail) {
+            toast.error('Please enter your email address');
+            return;
+        }
+
+        setSendingForgot(true);
+
+        try {
+            const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: forgotEmail })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                toast.success(data.message || 'Administrator has been notified. You will be contacted shortly.');
+                setShowForgotPassword(false);
+                setForgotEmail('');
+            } else {
+                toast.error(data.error || 'Failed to send request');
+            }
+        } catch (error) {
+            toast.error('Failed to send request. Please try again.');
+        } finally {
+            setSendingForgot(false);
         }
     };
 
@@ -110,9 +146,13 @@ export default function LoginPage() {
                                 >
                                     Password
                                 </label>
-                                <a href="#" className="text-sm font-medium text-primary hover:underline">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowForgotPassword(true)}
+                                    className="text-sm font-medium text-primary hover:underline"
+                                >
                                     Forgot password?
-                                </a>
+                                </button>
                             </div>
                             <Input
                                 id="password"
@@ -156,6 +196,71 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgotPassword && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-background rounded-lg shadow-xl max-w-md w-full p-6 animate-scale-in">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Mail className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 className="text-xl font-bold">Forgot Password?</h2>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Enter your email address and the administrator will be notified to help you recover your account.
+                        </p>
+
+                        <form onSubmit={handleForgotPassword} className="space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium" htmlFor="forgot-email">
+                                    Email Address
+                                </label>
+                                <Input
+                                    id="forgot-email"
+                                    type="email"
+                                    placeholder="name@company.com"
+                                    value={forgotEmail}
+                                    onChange={(e) => setForgotEmail(e.target.value)}
+                                    required
+                                    disabled={sendingForgot}
+                                    className="h-12"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => {
+                                        setShowForgotPassword(false);
+                                        setForgotEmail('');
+                                    }}
+                                    disabled={sendingForgot}
+                                    className="flex-1 h-12"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={sendingForgot}
+                                    className="flex-1 h-12"
+                                >
+                                    {sendingForgot ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        'Send Request'
+                                    )}
+                                </Button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
