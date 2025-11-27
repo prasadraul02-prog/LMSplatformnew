@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { use } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,8 +23,8 @@ interface QuizLink {
     };
 }
 
-export default function QuizLinksPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
+export default function QuizLinksPage({ params }: { params: { id: string } }) {
+    const [quizId, setQuizId] = useState<string>('');
     const [links, setLinks] = useState<QuizLink[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -39,12 +38,20 @@ export default function QuizLinksPage({ params }: { params: Promise<{ id: string
     });
 
     useEffect(() => {
-        fetchLinks();
-    }, []);
+        if (params?.id) {
+            setQuizId(params.id);
+        }
+    }, [params]);
+
+    useEffect(() => {
+        if (quizId) {
+            fetchLinks();
+        }
+    }, [quizId]);
 
     const fetchLinks = async () => {
         try {
-            const res = await fetch(`/api/quiz/links?quizId=${resolvedParams.id}`);
+            const res = await fetch(`/api/quiz/links?quizId=${quizId}`);
             if (res.ok) {
                 const data = await res.json();
                 setLinks(data);
@@ -62,7 +69,7 @@ export default function QuizLinksPage({ params }: { params: Promise<{ id: string
 
         try {
             const payload: any = {
-                quizId: resolvedParams.id,
+                quizId: quizId,
                 name: formData.name || null,
                 maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
                 expiresAt: formData.expiresAt || null,
@@ -265,8 +272,8 @@ export default function QuizLinksPage({ params }: { params: Promise<{ id: string
                                                     {link.name || 'Unnamed Link'}
                                                 </h3>
                                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${link.isEnabled
-                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                                     }`}>
                                                     {link.isEnabled ? 'Enabled' : 'Disabled'}
                                                 </div>

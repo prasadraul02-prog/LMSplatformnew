@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { use } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,8 +24,8 @@ interface QuizAttempt {
     } | null;
 }
 
-export default function QuizResultsPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
+export default function QuizResultsPage({ params }: { params: { id: string } }) {
+    const [quizId, setQuizId] = useState<string>('');
     const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -37,12 +36,20 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
     });
 
     useEffect(() => {
-        fetchResults();
-    }, []);
+        if (params?.id) {
+            setQuizId(params.id);
+        }
+    }, [params]);
+
+    useEffect(() => {
+        if (quizId) {
+            fetchResults();
+        }
+    }, [quizId]);
 
     const fetchResults = async () => {
         try {
-            const res = await fetch(`/api/quiz/results?quizId=${resolvedParams.id}`);
+            const res = await fetch(`/api/quiz/results?quizId=${quizId}`);
             if (res.ok) {
                 const data = await res.json();
                 setAttempts(data);
@@ -73,13 +80,13 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
 
     const downloadCSV = async () => {
         try {
-            const res = await fetch(`/api/quiz/results?quizId=${resolvedParams.id}&format=csv`);
+            const res = await fetch(`/api/quiz/results?quizId=${quizId}&format=csv`);
             if (res.ok) {
                 const blob = await res.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `quiz-results-${resolvedParams.id}.csv`;
+                a.download = `quiz-results-${quizId}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -241,8 +248,8 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
                                             </td>
                                             <td className="p-3 text-center">
                                                 <div className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${attempt.passed
-                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                                        : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                                                    ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                                    : 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
                                                     }`}>
                                                     {attempt.passed ? 'Passed' : 'Failed'}
                                                 </div>
