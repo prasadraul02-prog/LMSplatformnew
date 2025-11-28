@@ -16,8 +16,10 @@ export default async function AdminLayout({
     return (
         <div className="min-h-screen bg-background flex flex-col">
             <HorizontalNav />
-            <main className="flex-1 container py-6">
-                {children}
+            <main className="flex-1 w-full">
+                <div className="container-responsive py-6 md:py-8">
+                    {children}
+                </div>
             </main>
         </div>
     );

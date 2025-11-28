@@ -1,5 +1,3 @@
-'use client';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,18 +12,24 @@ import {
 import { useSession, signOut } from 'next-auth/react';
 import { User, LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
+import { generateAvatarUrl, getAvatarFallback } from '@/lib/avatar-generator';
 
 export function UserNav() {
     const { data: session } = useSession();
     const user = session?.user;
 
+    const avatarUrl = user?.id ? generateAvatarUrl(user.id) : user?.image || '';
+    const fallback = getAvatarFallback(user?.name, user?.email || '');
+
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.image || ''} alt={user?.name || ''} />
-                        <AvatarFallback>{user?.name?.[0] || 'U'}</AvatarFallback>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                    <Avatar className="h-9 w-9">
+                        <AvatarImage src={avatarUrl} alt={user?.name || ''} />
+                        <AvatarFallback className="bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
+                            {fallback}
+                        </AvatarFallback>
                     </Avatar>
                 </Button>
             </DropdownMenuTrigger>

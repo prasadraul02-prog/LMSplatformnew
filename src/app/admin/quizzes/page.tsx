@@ -74,11 +74,11 @@ export default function QuizManagementPage() {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-8">
+            <div className="flex items-start justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Quiz Management</h1>
-                    <p className="text-muted-foreground mt-1">
+                    <p className="text-muted-foreground mt-2">
                         Create and manage MCQ quizzes for your employees
                     </p>
                 </div>
@@ -107,7 +107,7 @@ export default function QuizManagementPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {quizzes.map((quiz) => (
                         <Card
                             key={quiz.id}
@@ -119,8 +119,8 @@ export default function QuizManagementPage() {
                                         {quiz.title}
                                     </CardTitle>
                                     <div className={`px-2 py-1 rounded-full text-xs font-medium ${quiz.isActive
-                                            ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                                            : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                         }`}>
                                         {quiz.isActive ? 'Active' : 'Inactive'}
                                     </div>
