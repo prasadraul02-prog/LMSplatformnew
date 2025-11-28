@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { RegisterServiceWorker } from "@/components/register-sw";
 import { Toaster } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,6 +48,7 @@ export default function RootLayout({
                 <Providers attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                     <RegisterServiceWorker />
                     <Toaster position="top-center" richColors />
+                    <ThemeToggle />
                     {children}
                 </Providers>
             </body>

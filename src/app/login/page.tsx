@@ -141,21 +141,6 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen w-full flex flex-col lg:flex-row">
-            {/* Theme Toggle - Top Right */}
-            <div className="absolute top-4 right-4 z-50">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                    className="rounded-full"
-                >
-                    {theme === "dark" ? (
-                        <Sun className="h-5 w-5" />
-                    ) : (
-                        <Moon className="h-5 w-5" />
-                    )}
-                </Button>
-            </div>
 
             {/* Left Side - Visual (Hidden on mobile) */}
             <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden items-center justify-center bg-gradient-to-br from-violet-600 via-indigo-600 to-indigo-900">

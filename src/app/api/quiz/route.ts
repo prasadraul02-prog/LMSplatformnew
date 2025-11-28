@@ -187,6 +187,24 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: 'Quiz ID is required' }, { status: 400 });
         }
 
+        // Manually delete related records to ensure no foreign key constraints are violated
+        // Delete attempts first (this should cascade to answers)
+        await prisma.quizAttempt.deleteMany({
+            where: { quizId }
+        });
+
+        // Delete questions (this should cascade to options)
+        // We delete these explicitly to be safe, though Quiz cascade might handle it if answers are gone
+        await prisma.quizQuestion.deleteMany({
+            where: { quizId }
+        });
+
+        // Delete links
+        await prisma.quizLink.deleteMany({
+            where: { quizId }
+        });
+
+        // Finally delete the quiz
         await prisma.standaloneQuiz.delete({
             where: { id: quizId }
         });

@@ -213,3 +213,52 @@ export const sendActionConfirmationEmail = async (
     console.error('Error sending confirmation email:', error);
   }
 };
+
+// Send contact admin email
+export const sendContactEmail = async (
+  email: string,
+  message: string
+): Promise<boolean> => {
+  try {
+    const transporter = createTransporter();
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px 8px 0 0; text-align: center;">
+    <h2 style="color: white; margin: 0;">New Support Request</h2>
+  </div>
+  
+  <div style="background-color: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #ddd; border-top: none;">
+    <p><strong>From:</strong> ${email}</p>
+    <p><strong>Message:</strong></p>
+    <div style="background-color: white; padding: 15px; border-radius: 4px; border: 1px solid #eee; margin-top: 10px;">
+      ${message.replace(/\n/g, '<br>')}
+    </div>
+    
+    <p style="margin-top: 20px; font-size: 12px; color: #666; border-top: 1px solid #eee; padding-top: 10px;">
+      This message was sent via the LMS Contact Admin form.
+    </p>
+  </div>
+</body>
+</html>
+    `.trim();
+
+    await transporter.sendMail({
+      from: `"LMS Support" <${process.env.SMTP_USER}>`,
+      to: process.env.SMTP_USER, // Send to admin (same as sender for now, or configure a separate admin email)
+      replyTo: email,
+      subject: `Support Request from ${email}`,
+      html: htmlContent,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Error sending contact email:', error);
+    return false;
+  }
+};

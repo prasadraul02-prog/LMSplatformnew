@@ -11,13 +11,17 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // TODO: Send email to admin
-        // For now, we'll just log it and return success
+        // Send email to admin
         console.log(`Contact Admin Request from: ${email}`);
-        console.log(`Message: ${message}`);
 
-        // In production, you would send an actual email here using the EMAIL_SERVER env var
-        // Example with nodemailer or similar service
+        // Import dynamically to avoid circular dependencies if any, though not expected here
+        const { sendContactEmail } = await import('@/lib/email');
+
+        const success = await sendContactEmail(email, message);
+
+        if (!success) {
+            throw new Error('Failed to send email via transport');
+        }
 
         return NextResponse.json({
             success: true,
