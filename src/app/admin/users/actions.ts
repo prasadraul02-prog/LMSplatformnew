@@ -70,10 +70,10 @@ export async function deleteUser(id: string) {
     }
 }
 
-export async function resetUserPassword(userId: string) {
+export async function resetUserPassword(userId: string, manualPassword?: string) {
     try {
-        // Generate a random password
-        const newPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        // Use manual password or generate a random one
+        const newPassword = manualPassword || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
         const hashedPassword = await bcrypt.hash(newPassword, 4);
 
         await prisma.user.update({

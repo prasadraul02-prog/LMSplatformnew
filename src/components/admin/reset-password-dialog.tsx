@@ -27,10 +27,12 @@ export function ResetPasswordDialog({ userId, userName, open, onOpenChange }: Re
     const [newPassword, setNewPassword] = useState('');
     const [copied, setCopied] = useState(false);
     const [resetting, setResetting] = useState(false);
+    const [mode, setMode] = useState<'auto' | 'manual'>('auto');
+    const [manualPassword, setManualPassword] = useState('');
 
     const handleReset = async () => {
         setResetting(true);
-        const result = await resetUserPassword(userId);
+        const result = await resetUserPassword(userId, mode === 'manual' ? manualPassword : undefined);
 
         if (result.success && result.password) {
             setNewPassword(result.password);
@@ -66,14 +68,57 @@ export function ResetPasswordDialog({ userId, userName, open, onOpenChange }: Re
 
                 <div className="space-y-4 py-4">
                     {!newPassword ? (
-                        <div className="text-center space-y-4">
-                            <p className="text-sm text-muted-foreground">
-                                Click the button below to generate a new random password
-                            </p>
-                            <Button onClick={handleReset} disabled={resetting} className="gap-2">
-                                <RefreshCw className={`h-4 w-4 ${resetting ? 'animate-spin' : ''}`} />
-                                {resetting ? 'Generating...' : 'Generate New Password'}
-                            </Button>
+                        <div className="space-y-4">
+                            <div className="flex gap-4 justify-center mb-4">
+                                <Button
+                                    variant={mode === 'auto' ? 'default' : 'outline'}
+                                    onClick={() => setMode('auto')}
+                                    size="sm"
+                                >
+                                    Auto-Generate
+                                </Button>
+                                <Button
+                                    variant={mode === 'manual' ? 'default' : 'outline'}
+                                    onClick={() => setMode('manual')}
+                                    size="sm"
+                                >
+                                    Manual Set
+                                </Button>
+                            </div>
+
+                            {mode === 'auto' ? (
+                                <div className="text-center space-y-4">
+                                    <p className="text-sm text-muted-foreground">
+                                        Click the button below to generate a new random password
+                                    </p>
+                                    <Button onClick={handleReset} disabled={resetting} className="gap-2">
+                                        <RefreshCw className={`h-4 w-4 ${resetting ? 'animate-spin' : ''}`} />
+                                        {resetting ? 'Generating...' : 'Generate New Password'}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Enter New Password</Label>
+                                        <Input
+                                            type="text"
+                                            value={manualPassword}
+                                            onChange={(e) => setManualPassword(e.target.value)}
+                                            placeholder="Enter password"
+                                        />
+                                    </div>
+                                    <Button
+                                        onClick={handleReset}
+                                        disabled={resetting || !manualPassword || manualPassword.length < 6}
+                                        className="w-full"
+                                    >
+                                        {resetting ? 'Setting...' : 'Set Password'}
+                                    </Button>
+                                    {manualPassword && manualPassword.length < 6 && (
+                                        <p className="text-xs text-red-500">Password must be at least 6 characters</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-4">

@@ -54,8 +54,22 @@ export async function GET(request: NextRequest) {
             // Generate CSV
             const csvRows = [];
 
+            // Get all unique questions from the attempts to create headers
+            // We use a Map to keep order if possible, or just unique by ID/Text
+            const questionMap = new Map<string, string>(); // id -> text
+
+            attempts.forEach(attempt => {
+                attempt.answers.forEach(ans => {
+                    if (ans.questionId && ans.question?.text) {
+                        questionMap.set(ans.questionId, ans.question.text);
+                    }
+                });
+            });
+
+            const questionIds = Array.from(questionMap.keys());
+
             // Header
-            csvRows.push([
+            const headers = [
                 'Submission Date',
                 'Employee Name',
                 'Employee Email',
@@ -68,11 +82,18 @@ export async function GET(request: NextRequest) {
                 'Passed',
                 'Time Spent (seconds)',
                 'IP Address'
-            ].join(','));
+            ];
+
+            // Add question headers
+            questionIds.forEach((qId, index) => {
+                headers.push(`"Q${index + 1}: ${questionMap.get(qId)?.replace(/"/g, '""')}"`);
+            });
+
+            csvRows.push(headers.join(','));
 
             // Data rows
             for (const attempt of attempts) {
-                csvRows.push([
+                const row = [
                     new Date(attempt.submittedAt).toLocaleString(),
                     `"${attempt.employeeName}"`,
                     attempt.employeeEmail,
@@ -85,7 +106,21 @@ export async function GET(request: NextRequest) {
                     attempt.passed ? 'Yes' : 'No',
                     attempt.timeSpent || '',
                     attempt.ipAddress || ''
-                ].join(','));
+                ];
+
+                // Add answers for each question column
+                questionIds.forEach(qId => {
+                    const answer = attempt.answers.find(a => a.questionId === qId);
+                    if (answer) {
+                        const answerText = answer.option?.text || 'No Answer';
+                        const isCorrect = answer.option?.isCorrect ? '(Correct)' : '(Wrong)';
+                        row.push(`"${answerText.replace(/"/g, '""')} ${isCorrect}"`);
+                    } else {
+                        row.push('""');
+                    }
+                });
+
+                csvRows.push(row.join(','));
             }
 
             const csv = csvRows.join('\n');

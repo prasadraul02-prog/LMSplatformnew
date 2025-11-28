@@ -182,25 +182,83 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
         if (!file) return;
 
         setImportingExcel(true);
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('quizId', quizId);
 
         try {
-            const res = await fetch('/api/quiz/import', {
-                method: 'POST',
-                body: formData
-            });
+            // Dynamic import of xlsx to avoid server-side issues
+            const XLSX = await import('xlsx');
 
-            if (res.ok) {
-                const data = await res.json();
-                toast.success(`Imported ${data.imported} questions successfully`);
-                fetchQuiz();
-            } else {
-                const error = await res.json();
-                toast.error(error.error || 'Failed to import questions');
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const data = XLSX.utils.sheet_to_json(sheet);
+
+            if (data.length === 0) {
+                toast.error('The uploaded file is empty');
+                return;
             }
+
+            const newQuestions: QuizQuestion[] = [];
+            let importedCount = 0;
+
+            for (const row of data as any[]) {
+                // Map columns based on user's format
+                // Format: Quesstion | Option A | Option B | Option C | Option D | Correct Option
+
+                const questionText = row['Quesstion'] || row['Question'] || row['question'];
+                if (!questionText) continue;
+
+                const optionA = row['Option A'] || row['Option a'];
+                const optionB = row['Option B'] || row['Option b'];
+                const optionC = row['Option C'] || row['Option c'];
+                const optionD = row['Option D'] || row['Option d'];
+
+                // If options are missing, skip
+                if (!optionA || !optionB) continue;
+
+                const correctOptionRaw = row['Correct Option'] || row['Correct option'] || row['Answer'];
+                let correctIndex = 0;
+
+                if (correctOptionRaw) {
+                    const val = String(correctOptionRaw).trim().toUpperCase();
+                    if (val === 'A' || val === '1') correctIndex = 0;
+                    else if (val === 'B' || val === '2') correctIndex = 1;
+                    else if (val === 'C' || val === '3') correctIndex = 2;
+                    else if (val === 'D' || val === '4') correctIndex = 3;
+                }
+
+                const options: QuizOption[] = [
+                    { text: String(optionA), isCorrect: correctIndex === 0, order: 0 },
+                    { text: String(optionB), isCorrect: correctIndex === 1, order: 1 }
+                ];
+
+                if (optionC) {
+                    options.push({ text: String(optionC), isCorrect: correctIndex === 2, order: 2 });
+                }
+                if (optionD) {
+                    options.push({ text: String(optionD), isCorrect: correctIndex === 3, order: 3 });
+                }
+
+                newQuestions.push({
+                    text: String(questionText),
+                    points: 1,
+                    order: questions.length + importedCount,
+                    questionType: 'SINGLE',
+                    options: options,
+                    explanation: ''
+                });
+                importedCount++;
+            }
+
+            if (importedCount > 0) {
+                setQuestions([...questions, ...newQuestions]);
+                toast.success(`Imported ${importedCount} questions successfully`);
+            } else {
+                toast.error('No valid questions found in the file. Please check the format.');
+            }
+
         } catch (error) {
+            console.error('Import error:', error);
             toast.error('Failed to import questions');
         } finally {
             setImportingExcel(false);
