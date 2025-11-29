@@ -44,7 +44,25 @@ export default async function ReportsPage() {
 
     return (
         <div>
-            <h1 style={{ marginBottom: '2rem' }}>Reports & Analytics</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h1>Reports & Analytics</h1>
+                <a
+                    href="/admin/reports/kpi"
+                    style={{
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: 'var(--primary)',
+                        color: 'white',
+                        borderRadius: '0.5rem',
+                        textDecoration: 'none',
+                        fontWeight: 500,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    KPI Generator
+                </a>
+            </div>
 
             <div className={styles.grid}>
                 <div className={styles.card}>
