@@ -50,7 +50,7 @@ export function getAvatarUrl(userId: string, avatarStyle?: string | null): strin
 
         // Encode SVG for data URI
         const encodedSvg = typeof window !== 'undefined'
-            ? window.btoa(svg)
+            ? window.btoa(encodeURIComponent(svg).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16))))
             : Buffer.from(svg).toString('base64');
 
         return `data:image/svg+xml;base64,${encodedSvg}`;
