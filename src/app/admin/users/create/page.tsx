@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 export default function CreateUserPage() {
     const initialState: State = { message: '', error: undefined, success: false };
     const [state, formAction] = useFormState(createUser, initialState);
-    const [selectedAvatar, setSelectedAvatar] = useState('bottts');
+    const [selectedAvatar, setSelectedAvatar] = useState('dog');
     const [name, setName] = useState('');
 
     // Generate a preview URL based on the name (as seed) if no specific avatar is selected, 

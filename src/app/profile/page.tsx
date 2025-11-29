@@ -19,8 +19,8 @@ export default function ProfilePage() {
     const [isPending, startTransition] = useTransition();
     const router = useRouter();
 
-    // Local state for immediate feedback, defaulting to user's current avatar or 'bottts'
-    const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'bottts');
+    // Local state for immediate feedback, defaulting to user's current avatar or 'dog'
+    const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'dog');
 
     if (!user) {
         return <div className="p-8">Loading...</div>;
@@ -110,8 +110,8 @@ export default function ProfilePage() {
                                     <div
                                         key={option.id}
                                         className={`cursor-pointer rounded-lg p-2 border-2 transition-all hover:bg-accent ${selectedAvatar === option.style
-                                                ? 'border-primary bg-accent'
-                                                : 'border-transparent'
+                                            ? 'border-primary bg-accent'
+                                            : 'border-transparent'
                                             }`}
                                         onClick={() => setSelectedAvatar(option.style)}
                                     >

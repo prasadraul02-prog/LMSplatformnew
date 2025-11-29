@@ -90,7 +90,7 @@ export async function createUser(prevState: State, formData: FormData): Promise<
                 email,
                 password: hashedPassword,
                 role: role as any,
-                avatar: avatar || 'bottts', // Default to bottts if not provided
+                avatar: avatar || 'dog', // Default to dog if not provided
                 departmentId: defaultDepartment.id,
                 designationId: defaultDesignation.id,
             },
