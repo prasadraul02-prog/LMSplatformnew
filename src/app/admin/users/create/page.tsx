@@ -1,7 +1,7 @@
 'use client';
 
 import { useFormState } from 'react-dom';
-import { createUser } from '../actions';
+import { createUser, State } from '../actions';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ import { Check, UserPlus, User, Mail, Lock, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function CreateUserPage() {
-    const initialState = { message: '', error: {}, success: false };
+    const initialState: State = { message: '', error: undefined, success: false };
     const [state, formAction] = useFormState(createUser, initialState);
     const [selectedAvatar, setSelectedAvatar] = useState('bottts');
     const [name, setName] = useState('');
@@ -134,8 +134,8 @@ export default function CreateUserPage() {
                                         <div
                                             key={option.id}
                                             className={`cursor-pointer rounded-lg p-2 border-2 transition-all hover:bg-accent ${selectedAvatar === option.style
-                                                    ? 'border-primary bg-accent/50'
-                                                    : 'border-transparent hover:border-muted'
+                                                ? 'border-primary bg-accent/50'
+                                                : 'border-transparent hover:border-muted'
                                                 }`}
                                             onClick={() => setSelectedAvatar(option.style)}
                                         >

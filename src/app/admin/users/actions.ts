@@ -14,7 +14,19 @@ const UserSchema = z.object({
     avatar: z.string().optional(),
 });
 
-export async function createUser(prevState: any, formData: FormData) {
+export type State = {
+    error?: {
+        name?: string[];
+        email?: string[];
+        password?: string[];
+        role?: string[];
+        avatar?: string[];
+    };
+    message?: string;
+    success?: boolean;
+};
+
+export async function createUser(prevState: State, formData: FormData): Promise<State> {
     const validatedFields = UserSchema.safeParse({
         name: formData.get('name'),
         email: formData.get('email'),
