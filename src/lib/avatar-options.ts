@@ -48,12 +48,9 @@ export function getAvatarUrl(userId: string, avatarStyle?: string | null): strin
         </svg>
         `.trim();
 
-        // Encode SVG for data URI
-        const encodedSvg = typeof window !== 'undefined'
-            ? window.btoa(encodeURIComponent(svg).replace(/%([0-9A-F]{2})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16))))
-            : Buffer.from(svg).toString('base64');
-
-        return `data:image/svg+xml;base64,${encodedSvg}`;
+        // Use URI encoding instead of base64 to avoid btoa() Latin1 character issues with emojis
+        const encodedSvg = encodeURIComponent(svg);
+        return `data:image/svg+xml,${encodedSvg}`;
     }
 
     // Fallback for any legacy styles or invalid options
