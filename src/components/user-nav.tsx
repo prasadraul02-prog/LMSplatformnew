@@ -26,7 +26,15 @@ export function UserNav() {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-9 w-9 rounded-full">
                     <Avatar className="h-9 w-9">
-                        <AvatarImage src={avatarUrl} alt={user?.name || ''} />
+                        <AvatarImage
+                            src={avatarUrl}
+                            alt={user?.name || ''}
+                            onError={(e) => {
+                                // Fallback to default avatar if DiceBear fails to load
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                            }}
+                        />
                         <AvatarFallback className="bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
                             {fallback}
                         </AvatarFallback>

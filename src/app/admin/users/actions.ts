@@ -42,30 +42,101 @@ export async function createUser(prevState: any, formData: FormData) {
 
         const hashedPassword = await bcrypt.hash(password, 4);
 
+        // Set professional defaults for new users
+        // 1. Find or create a default department
+        let defaultDepartment = await prisma.department.findFirst({
+            where: { name: "General" }
+        });
+
+        if (!defaultDepartment) {
+            defaultDepartment = await prisma.department.create({
+                data: { name: "General" }
+            });
+        }
+
+        // 2. Find or create a default designation based on role
+        const designationName = role === "ADMIN" ? "Administrator"
+            : role === "TRAINER" ? "Trainer"
+                : "Employee";
+
+        let defaultDesignation = await prisma.designation.findFirst({
+            where: { name: designationName }
+        });
+
+        if (!defaultDesignation) {
+            defaultDesignation = await prisma.designation.create({
+                data: { name: designationName }
+            });
+        }
+
+        // 3. Create user with defaults
         await prisma.user.create({
             data: {
                 name,
                 email,
                 password: hashedPassword,
                 role: role as any,
+                departmentId: defaultDepartment.id,
+                designationId: defaultDesignation.id,
             },
         });
 
         revalidatePath('/admin/users');
         return { success: true, message: "User created successfully" };
     } catch (error) {
+        console.error("Error creating user:", error);
         return { message: "Failed to create user" };
     }
 }
 
 export async function deleteUser(id: string) {
     try {
+        // Cascade delete all related records before deleting the user
+        // This prevents foreign key constraint violations
+
+        // 1. Delete enrollments (this will cascade to module progress via onDelete: Cascade in schema)
+        await prisma.enrollment.deleteMany({
+            where: { userId: id },
+        });
+
+        // 2. Delete certificates
+        await prisma.certificate.deleteMany({
+            where: { userId: id },
+        });
+
+        // 3. Delete notifications
+        await prisma.notification.deleteMany({
+            where: { userId: id },
+        });
+
+        // 4. Delete quiz results (if they exist for this user)
+        await prisma.quizResult.deleteMany({
+            where: { userId: id },
+        });
+
+        // 5. For created courses, we have two options:
+        // Option A: Delete all courses created by this user (destructive)
+        // Option B: Reassign courses to another admin (safer)
+        // For now, we'll prevent deletion if user has created courses
+        const createdCourses = await prisma.course.count({
+            where: { authorId: id },
+        });
+
+        if (createdCourses > 0) {
+            return {
+                error: `Cannot delete user: This user has created ${createdCourses} course(s). Please reassign or delete those courses first.`
+            };
+        }
+
+        // 6. Finally, delete the user
         await prisma.user.delete({
             where: { id },
         });
+
         revalidatePath('/admin/users');
         return { success: true };
     } catch (error) {
+        console.error("Error deleting user:", error);
         return { error: "Failed to delete user" };
     }
 }

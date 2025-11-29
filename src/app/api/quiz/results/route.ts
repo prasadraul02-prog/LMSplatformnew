@@ -52,10 +52,9 @@ export async function GET(request: NextRequest) {
 
         if (format === 'csv') {
             // Generate CSV
-            const csvRows = [];
+            const csvRows: string[] = [];
 
             // Get all unique questions from the attempts to create headers
-            // We use a Map to keep order if possible, or just unique by ID/Text
             const questionMap = new Map<string, string>(); // id -> text
 
             attempts.forEach(attempt => {
@@ -68,16 +67,13 @@ export async function GET(request: NextRequest) {
 
             const questionIds = Array.from(questionMap.keys());
 
-            // Header
+            // Header - CORRECTED ORDER as per requirements
             const headers = [
                 'Submission Date',
                 'Employee Name',
                 'Employee Email',
                 'Employee ID',
-                'Link Name',
-                'Link Code',
                 'Score',
-                'Total Points',
                 'Percentage',
                 'Passed',
                 'Time Spent (seconds)',
@@ -86,35 +82,33 @@ export async function GET(request: NextRequest) {
 
             // Add question headers
             questionIds.forEach((qId, index) => {
-                headers.push(`"Q${index + 1}: ${questionMap.get(qId)?.replace(/"/g, '""')}"`);
+                const questionText = questionMap.get(qId)?.replace(/"/g, '""') || '';
+                headers.push(`"Q${index + 1}: ${questionText}"`);
             });
 
             csvRows.push(headers.join(','));
 
-            // Data rows
+            // Data rows - UPDATED ORDER to match headers
             for (const attempt of attempts) {
-                const row = [
-                    new Date(attempt.submittedAt).toLocaleString(),
-                    `"${attempt.employeeName}"`,
-                    attempt.employeeEmail,
-                    attempt.employeeId || '',
-                    `"${attempt.link?.name || 'Direct'}"`,
-                    attempt.link?.linkCode || '',
-                    attempt.score,
-                    attempt.totalPoints,
+                const row: string[] = [
+                    `"${new Date(attempt.submittedAt).toLocaleString()}"`,
+                    `"${attempt.employeeName?.replace(/"/g, '""') || ''}"`,
+                    `"${attempt.employeeEmail?.replace(/"/g, '""') || ''}"`,
+                    `"${attempt.employeeId || ''}"`,
+                    attempt.score.toString(),
                     attempt.percentage.toFixed(2),
                     attempt.passed ? 'Yes' : 'No',
-                    attempt.timeSpent || '',
-                    attempt.ipAddress || ''
+                    (attempt.timeSpent || 0).toString(),
+                    `"${attempt.ipAddress || ''}"`
                 ];
 
                 // Add answers for each question column
                 questionIds.forEach(qId => {
                     const answer = attempt.answers.find(a => a.questionId === qId);
                     if (answer) {
-                        const answerText = answer.option?.text || 'No Answer';
+                        const answerText = answer.option?.text?.replace(/"/g, '""') || 'No Answer';
                         const isCorrect = answer.option?.isCorrect ? '(Correct)' : '(Wrong)';
-                        row.push(`"${answerText.replace(/"/g, '""')} ${isCorrect}"`);
+                        row.push(`"${answerText} ${isCorrect}"`);
                     } else {
                         row.push('""');
                     }
@@ -127,7 +121,7 @@ export async function GET(request: NextRequest) {
 
             return new NextResponse(csv, {
                 headers: {
-                    'Content-Type': 'text/csv',
+                    'Content-Type': 'text/csv; charset=utf-8',
                     'Content-Disposition': `attachment; filename="quiz-results-${quizId}.csv"`
                 }
             });
@@ -144,7 +138,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// GET: Fetch detailed attempt
+// POST: Fetch detailed attempt
 export async function POST(request: NextRequest) {
     try {
         const session = await auth();
