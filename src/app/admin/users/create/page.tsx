@@ -13,7 +13,7 @@ import { Check, UserPlus, User, Mail, Lock, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export default function CreateUserPage() {
-    const initialState = { message: null, error: null };
+    const initialState = { message: '', error: {}, success: false };
     const [state, formAction] = useFormState(createUser, initialState);
     const [selectedAvatar, setSelectedAvatar] = useState('bottts');
     const [name, setName] = useState('');
