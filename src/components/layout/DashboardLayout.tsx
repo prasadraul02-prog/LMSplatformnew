@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { motion, AnimatePresence } from "framer-motion";
+import { UserNav } from "@/components/user-nav";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -169,20 +170,18 @@ export default function DashboardLayout({
                     </Button>
 
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <Button variant="ghost" size="icon" className="relative touch-target" aria-label="Notifications">
-                            <Bell className="h-5 w-5 text-muted-foreground" />
-                            <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
-                        </Button>
+                        <Link href={role === 'EMPLOYEE' ? '/employee/notifications' : role === 'ADMIN' ? '/admin/notifications' : '#'}>
+                            <Button variant="ghost" size="icon" className="relative touch-target" aria-label="Notifications">
+                                <Bell className="h-5 w-5 text-muted-foreground" />
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                            </Button>
+                        </Link>
                         <div className="flex items-center gap-3 pl-3 sm:pl-4 border-l border-border">
                             <div className="text-right hidden md:block">
                                 <p className="text-sm font-medium leading-none">{userEmail?.split('@')[0] || 'User'}</p>
                                 <p className="text-xs text-muted-foreground">{role}</p>
                             </div>
-                            <Avatar className="h-9 w-9">
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                    <User className="h-5 w-5" />
-                                </AvatarFallback>
-                            </Avatar>
+                            <UserNav />
                         </div>
                     </div>
                 </header>
