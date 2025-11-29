@@ -21,6 +21,7 @@ model User {
   email         String    @unique
   password      String
   role          String    @default("EMPLOYEE")
+  avatar        String?   // Selected avatar style (e.g., "bottts", "avataaars", etc.)
   departmentId  String?
   designationId String?
   createdAt     DateTime  @default(now())

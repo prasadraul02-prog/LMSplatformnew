@@ -117,7 +117,8 @@ export async function GET(request: NextRequest) {
                 csvRows.push(row.join(','));
             }
 
-            const csv = csvRows.join('\n');
+            // Add UTF-8 BOM to fix encoding in Excel
+            const csv = '\uFEFF' + csvRows.join('\n');
 
             return new NextResponse(csv, {
                 headers: {

@@ -16,9 +16,9 @@ import { generateAvatarUrl, getAvatarFallback } from '@/lib/avatar-generator';
 
 export function UserNav() {
     const { data: session } = useSession();
-    const user = session?.user;
+    const user = session?.user as any;
 
-    const avatarUrl = user?.id ? generateAvatarUrl(user.id) : user?.image || '';
+    const avatarUrl = user?.id ? generateAvatarUrl(user.id, user.avatar) : user?.image || '';
     const fallback = getAvatarFallback(user?.name, user?.email || '');
 
     return (
