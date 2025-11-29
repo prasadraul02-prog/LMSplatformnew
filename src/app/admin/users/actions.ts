@@ -11,6 +11,7 @@ const UserSchema = z.object({
     email: z.string().email("Invalid email"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     role: z.enum(["ADMIN", "TRAINER", "EMPLOYEE"]),
+    avatar: z.string().optional(),
 });
 
 export async function createUser(prevState: any, formData: FormData) {
@@ -19,6 +20,7 @@ export async function createUser(prevState: any, formData: FormData) {
         email: formData.get('email'),
         password: formData.get('password'),
         role: formData.get('role'),
+        avatar: formData.get('avatar'),
     });
 
     if (!validatedFields.success) {
@@ -27,7 +29,7 @@ export async function createUser(prevState: any, formData: FormData) {
         };
     }
 
-    const { name, email, password, role } = validatedFields.data;
+    const { name, email, password, role, avatar } = validatedFields.data;
 
     try {
         const existingUser = await prisma.user.findUnique({
@@ -76,6 +78,7 @@ export async function createUser(prevState: any, formData: FormData) {
                 email,
                 password: hashedPassword,
                 role: role as any,
+                avatar: avatar || 'bottts', // Default to bottts if not provided
                 departmentId: defaultDepartment.id,
                 designationId: defaultDesignation.id,
             },
