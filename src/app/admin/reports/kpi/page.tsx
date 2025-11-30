@@ -132,11 +132,14 @@ export default function KPIReportPage() {
                 throw new Error("Missing required columns: Location or Training Level");
             }
 
+            const locationCol = cols.location;
+            const levelCol = cols.level;
+
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
             const locationMap = new Map<string, LocationStats>();
 
             jsonData.forEach((row: any) => {
-                const loc = normalizeString(row[cols.location]);
+                const loc = normalizeString(row[locationCol]);
                 if (!loc) return;
 
                 if (!locationMap.has(loc)) {
@@ -157,7 +160,7 @@ export default function KPIReportPage() {
                 const stat = locationMap.get(loc)!;
                 stat.totalEmployees++;
 
-                const level = normalizeString(row[cols.level]).toLowerCase();
+                const level = normalizeString(row[levelCol]).toLowerCase();
                 const emp: Employee = {
                     id: cols.id ? normalizeString(row[cols.id]) : "N/A",
                     name: cols.name ? normalizeString(row[cols.name]) : "Unknown",
