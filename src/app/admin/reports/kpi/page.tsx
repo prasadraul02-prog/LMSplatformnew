@@ -1,29 +1,39 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Download, Loader2, Search } from "lucide-react";
+import {
+    Upload, FileSpreadsheet, AlertCircle, CheckCircle, Download, Loader2, Search,
+    Printer, Filter, X, ChevronRight, UserX, Phone, Copy, AlertTriangle
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 
-// Region Mapping Configuration
+// --- Configuration & Types ---
+
 const REGION_MAPPING: Record<string, string> = {
-    "Nasik": "R1",
-    "Ahilyanagar": "R1",
-    "Alephata": "R1",
-    "Chakan": "R1",
-    "Tathawade": "R1",
-    "Loni": "R2",
-    "Baramati": "R2",
-    "Indapur": "R2",
-    "Osmanabad": "R2",
-    "Solapur": "R2",
-    "Kolhapur": "R3",
-    "Kudal": "R3",
-    "Ratnagiri": "R3",
-    "Sangli": "R3",
-    "Satara": "R3",
-    "Verna": "R3"
+    "Nasik": "R1", "Ahilyanagar": "R1", "Alephata": "R1", "Chakan": "R1", "Tathawade": "R1",
+    "Loni": "R2", "Baramati": "R2", "Indapur": "R2", "Osmanabad": "R2", "Solapur": "R2",
+    "Kolhapur": "R3", "Kudal": "R3", "Ratnagiri": "R3", "Sangli": "R3", "Satara": "R3", "Verna": "R3"
 };
+
+const THRESHOLDS = {
+    BASIC: 100,
+    ADVANCE: 60,
+    EXPERT: 40
+};
+
+interface Employee {
+    id: string;
+    name: string;
+    designation: string;
+    mobile: string;
+    location: string;
+    doj: string;
+    subCategory: string;
+    level: string;
+    isUntrained: boolean;
+}
 
 interface LocationStats {
     region: string;
@@ -36,6 +46,8 @@ interface LocationStats {
     expertTrained: number;
     expertPercent: number;
     untrained: number;
+    untrainedList: Employee[];
+    failures: string[]; // "Basic", "Advance", "Expert"
 }
 
 interface OverallStats {
@@ -49,491 +61,632 @@ interface OverallStats {
     totalUntrained: number;
 }
 
+// --- Helper Functions ---
+
+const findColumnName = (headers: string[], possibleNames: string[]): string | undefined => {
+    const lowerHeaders = headers.map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ""));
+    const lowerPossibleNames = possibleNames.map(n => n.toLowerCase().replace(/[^a-z0-9]/g, ""));
+
+    for (const name of lowerPossibleNames) {
+        const index = lowerHeaders.findIndex(h => h.includes(name));
+        if (index !== -1) return headers[index];
+    }
+    return undefined;
+};
+
+const normalizeString = (val: any) => val ? String(val).trim() : "";
+
+// --- Components ---
+
 export default function KPIReportPage() {
+    // State
     const [file, setFile] = useState<File | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [isProcessing, setIsProcessing] = useState(false);
     const [stats, setStats] = useState<LocationStats[] | null>(null);
     const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [untrainedModalData, setUntrainedModalData] = useState<{ location: string, employees: Employee[] } | null>(null);
 
-    // Helper function to find a column name loosely matching a list of possible names
-    const findColumnName = (headers: string[], possibleNames: string[]): string | undefined => {
-        const lowerHeaders = headers.map(h => h.toLowerCase().trim());
-        const lowerPossibleNames = possibleNames.map(n => n.toLowerCase().trim());
+    // Filters
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterRegion, setFilterRegion] = useState<string>("All");
+    const [showExceptionsOnly, setShowExceptionsOnly] = useState(false);
 
-        for (const name of lowerPossibleNames) {
-            const index = lowerHeaders.findIndex(h => h === name || h.includes(name));
-            if (index !== -1) {
-                return headers[index];
-            }
-        }
-        return undefined;
-    };
+    // --- Processing Logic ---
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const uploadedFile = e.target.files?.[0];
         if (uploadedFile) {
             setFile(uploadedFile);
-            setError(null);
             setStats(null);
             setOverallStats(null);
         }
     };
 
     const processFile = async () => {
-        if (!file) {
-            setError("Please upload an Excel file first.");
-            return;
-        }
-
+        if (!file) return;
         setIsProcessing(true);
-        setError(null);
 
         try {
             const data = await file.arrayBuffer();
             const workbook = XLSX.read(data);
             const sheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[sheetName];
-
-            // Get headers first to perform loose matching
             const jsonDataRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            if (jsonDataRaw.length === 0) {
-                throw new Error("The uploaded file is empty.");
-            }
 
+            if (jsonDataRaw.length === 0) throw new Error("Empty file");
             const headers = jsonDataRaw[0] as string[];
 
-            // Define possible column names
-            const locationCol = findColumnName(headers, ['dealer location', 'location', 'branch', 'dealer', 'city', 'site']);
-            const trainingLevelCol = findColumnName(headers, ['training level', 'level', 'training', 'status', 'grade', 'competency']);
+            // Column Detection
+            const cols = {
+                location: findColumnName(headers, ['dealerlocation', 'location', 'branch', 'city', 'site']),
+                level: findColumnName(headers, ['traininglevel', 'level', 'status', 'grade', 'competency']),
+                id: findColumnName(headers, ['employeeid', 'empid', 'id', 'code']),
+                name: findColumnName(headers, ['employeename', 'name', 'fullname', 'empname']),
+                designation: findColumnName(headers, ['designation', 'role', 'position', 'job']),
+                mobile: findColumnName(headers, ['mobile', 'phone', 'contact', 'cell']),
+                doj: findColumnName(headers, ['doj', 'dateofjoining', 'joining']),
+                subCategory: findColumnName(headers, ['subcategory', 'category', 'dept', 'department'])
+            };
 
-            if (!locationCol || !trainingLevelCol) {
-                setError(`Could not automatically detect required columns. Found headers: ${headers.join(", ")}. Please ensure columns for 'Location' and 'Training Level' exist.`);
-                setIsProcessing(false);
-                return;
+            if (!cols.location || !cols.level) {
+                throw new Error("Missing required columns: Location or Training Level");
             }
 
-            // Now parse with the detected keys
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-            const locationMap = new Map<string, {
-                total: number;
-                basic: number;
-                advance: number;
-                expert: number;
-                untrained: number;
-            }>();
+            const locationMap = new Map<string, LocationStats>();
 
             jsonData.forEach((row: any) => {
-                const locationRaw = row[locationCol];
-                const location = locationRaw ? String(locationRaw).trim() : "";
-                if (!location) return; // Skip rows without location
+                const loc = normalizeString(row[cols.location]);
+                if (!loc) return;
 
-                if (!locationMap.has(location)) {
-                    locationMap.set(location, { total: 0, basic: 0, advance: 0, expert: 0, untrained: 0 });
+                if (!locationMap.has(loc)) {
+                    // Determine Region
+                    let region = "Other";
+                    const locationKey = Object.keys(REGION_MAPPING).find(k => loc.toLowerCase().includes(k.toLowerCase()));
+                    if (locationKey) region = REGION_MAPPING[locationKey];
+
+                    locationMap.set(loc, {
+                        region, location: loc, totalEmployees: 0,
+                        basicTrained: 0, basicPercent: 0,
+                        advanceTrained: 0, advancePercent: 0,
+                        expertTrained: 0, expertPercent: 0,
+                        untrained: 0, untrainedList: [], failures: []
+                    });
                 }
 
-                const stats = locationMap.get(location)!;
-                stats.total += 1;
+                const stat = locationMap.get(loc)!;
+                stat.totalEmployees++;
 
-                const levelRaw = row[trainingLevelCol];
-                const level = levelRaw ? String(levelRaw).trim().toLowerCase() : "";
+                const level = normalizeString(row[cols.level]).toLowerCase();
+                const emp: Employee = {
+                    id: cols.id ? normalizeString(row[cols.id]) : "N/A",
+                    name: cols.name ? normalizeString(row[cols.name]) : "Unknown",
+                    designation: cols.designation ? normalizeString(row[cols.designation]) : "-",
+                    mobile: cols.mobile ? normalizeString(row[cols.mobile]) : "-",
+                    doj: cols.doj ? normalizeString(row[cols.doj]) : "-",
+                    subCategory: cols.subCategory ? normalizeString(row[cols.subCategory]) : "-",
+                    location: loc,
+                    level: level,
+                    isUntrained: false
+                };
 
                 if (level.includes("expert")) {
-                    stats.expert += 1;
-                    stats.advance += 1; // Expert implies Advance
-                    stats.basic += 1;   // Expert implies Basic
+                    stat.expertTrained++;
+                    stat.advanceTrained++;
+                    stat.basicTrained++;
                 } else if (level.includes("advance")) {
-                    stats.advance += 1;
-                    stats.basic += 1;   // Advance implies Basic
+                    stat.advanceTrained++;
+                    stat.basicTrained++;
                 } else if (level.includes("basic")) {
-                    stats.basic += 1;
+                    stat.basicTrained++;
                 } else {
-                    stats.untrained += 1;
+                    stat.untrained++;
+                    emp.isUntrained = true;
+                    stat.untrainedList.push(emp);
                 }
             });
 
-            const locationStats: LocationStats[] = [];
-            let grandTotalEmployees = 0;
-            let grandTotalBasic = 0;
-            let grandTotalAdvance = 0;
-            let grandTotalExpert = 0;
-            let grandTotalUntrained = 0;
+            // Calculate Percentages & Failures
+            const finalStats: LocationStats[] = [];
+            const overall = {
+                totalEmployees: 0, totalBasic: 0, totalAdvance: 0, totalExpert: 0, totalUntrained: 0,
+                avgBasicPercent: 0, avgAdvancePercent: 0, avgExpertPercent: 0
+            };
 
-            locationMap.forEach((val, key) => {
-                const basicPercent = val.total > 0 ? Math.round((val.basic / val.total) * 100) : 0;
-                const advancePercent = val.total > 0 ? Math.round((val.advance / val.total) * 100) : 0;
-                const expertPercent = val.total > 0 ? Math.round((val.expert / val.total) * 100) : 0;
-
-                // Determine Region
-                // Check for exact match or partial match in our mapping
-                let region = "Other";
-                const locationKey = Object.keys(REGION_MAPPING).find(k => key.toLowerCase().includes(k.toLowerCase()));
-                if (locationKey) {
-                    region = REGION_MAPPING[locationKey];
+            locationMap.forEach(stat => {
+                if (stat.totalEmployees > 0) {
+                    stat.basicPercent = Math.round((stat.basicTrained / stat.totalEmployees) * 100);
+                    stat.advancePercent = Math.round((stat.advanceTrained / stat.totalEmployees) * 100);
+                    stat.expertPercent = Math.round((stat.expertTrained / stat.totalEmployees) * 100);
                 }
 
-                locationStats.push({
-                    region,
-                    location: key,
-                    totalEmployees: val.total,
-                    basicTrained: val.basic,
-                    basicPercent,
-                    advanceTrained: val.advance,
-                    advancePercent,
-                    expertTrained: val.expert,
-                    expertPercent,
-                    untrained: val.untrained,
-                });
+                if (stat.basicPercent < THRESHOLDS.BASIC) stat.failures.push("Basic");
+                if (stat.advancePercent < THRESHOLDS.ADVANCE) stat.failures.push("Advance");
+                if (stat.expertPercent < THRESHOLDS.EXPERT) stat.failures.push("Expert");
 
-                grandTotalEmployees += val.total;
-                grandTotalBasic += val.basic;
-                grandTotalAdvance += val.advance;
-                grandTotalExpert += val.expert;
-                grandTotalUntrained += val.untrained;
+                finalStats.push(stat);
+
+                overall.totalEmployees += stat.totalEmployees;
+                overall.totalBasic += stat.basicTrained;
+                overall.totalAdvance += stat.advanceTrained;
+                overall.totalExpert += stat.expertTrained;
+                overall.totalUntrained += stat.untrained;
             });
 
-            // Sort by Region (R1, R2, R3, Other) then by Location name
-            locationStats.sort((a, b) => {
+            if (overall.totalEmployees > 0) {
+                overall.avgBasicPercent = Math.round((overall.totalBasic / overall.totalEmployees) * 100);
+                overall.avgAdvancePercent = Math.round((overall.totalAdvance / overall.totalEmployees) * 100);
+                overall.avgExpertPercent = Math.round((overall.totalExpert / overall.totalEmployees) * 100);
+            }
+
+            // Sort
+            finalStats.sort((a, b) => {
                 if (a.region < b.region) return -1;
                 if (a.region > b.region) return 1;
                 return a.location.localeCompare(b.location);
             });
 
-            // Calculate Grand Total Percentages
-            const avgBasicPercent = grandTotalEmployees > 0 ? Math.round((grandTotalBasic / grandTotalEmployees) * 100) : 0;
-            const avgAdvancePercent = grandTotalEmployees > 0 ? Math.round((grandTotalAdvance / grandTotalEmployees) * 100) : 0;
-            const avgExpertPercent = grandTotalEmployees > 0 ? Math.round((grandTotalExpert / grandTotalEmployees) * 100) : 0;
+            setStats(finalStats);
+            setOverallStats(overall);
 
-            setOverallStats({
-                totalEmployees: grandTotalEmployees,
-                totalBasic: grandTotalBasic,
-                avgBasicPercent,
-                totalAdvance: grandTotalAdvance,
-                avgAdvancePercent,
-                totalExpert: grandTotalExpert,
-                avgExpertPercent,
-                totalUntrained: grandTotalUntrained,
-            });
+            // Check for failures and notify
+            const failureCount = finalStats.filter(s => s.failures.length > 0).length;
+            if (failureCount > 0) {
+                toast.error(`${failureCount} locations are below KPI targets.`, {
+                    action: { label: "View", onClick: () => document.getElementById('exceptions-panel')?.scrollIntoView({ behavior: 'smooth' }) }
+                });
+            } else {
+                toast.success("All locations met KPI targets!");
+            }
 
-            setStats(locationStats);
         } catch (err: any) {
-            console.error(err);
-            setError(err.message || "Failed to process the file. Please ensure it is a valid Excel file.");
+            toast.error(err.message || "Failed to process file");
         } finally {
             setIsProcessing(false);
         }
     };
 
-    // Group stats by region for the table rendering to handle rowspans if needed, 
-    // but for simplicity and sorting, a flat list with a region column is also fine.
-    // We will render a flat list but visually group if needed. 
-    // The requirement asks for a specific column "Region".
+    // --- Export Logic ---
+
+    const exportExcel = () => {
+        if (!stats) return;
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Main Report
+        const mainData = stats.map(s => ({
+            Region: s.region,
+            Location: s.location,
+            "Total Emp": s.totalEmployees,
+            "Basic %": s.basicPercent + "%",
+            "Advance %": s.advancePercent + "%",
+            "Expert %": s.expertPercent + "%",
+            "Untrained": s.untrained,
+            "Status": s.failures.length > 0 ? "Below Target" : "On Track"
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mainData), "KPI Report");
+
+        // Sheet 2: Exceptions
+        const exceptionsData = stats.filter(s => s.failures.length > 0).map(s => ({
+            Location: s.location,
+            "Failing Levels": s.failures.join(", "),
+            "Basic %": s.basicPercent + "%",
+            "Advance %": s.advancePercent + "%",
+            "Expert %": s.expertPercent + "%"
+        }));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(exceptionsData), "KPI Exceptions");
+
+        // Sheet 3: Untrained
+        const untrainedData: any[] = [];
+        stats.forEach(s => {
+            s.untrainedList.forEach(u => {
+                untrainedData.push({
+                    "Dealer Location": s.location,
+                    "Employee ID": u.id,
+                    "Name": u.name,
+                    "Designation": u.designation,
+                    "Mobile": u.mobile,
+                    "DOJ": u.doj,
+                    "Sub Category": u.subCategory
+                });
+            });
+        });
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(untrainedData), "Untrained Employees");
+
+        XLSX.writeFile(wb, "KPI_Analysis_Report.xlsx");
+    };
+
+    // --- Filtered Data ---
+
+    const filteredStats = useMemo(() => {
+        if (!stats) return [];
+        return stats.filter(s => {
+            const matchesSearch = s.location.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesRegion = filterRegion === "All" || s.region === filterRegion;
+            const matchesException = !showExceptionsOnly || s.failures.length > 0;
+            return matchesSearch && matchesRegion && matchesException;
+        });
+    }, [stats, searchTerm, filterRegion, showExceptionsOnly]);
+
+    const exceptionsList = useMemo(() => stats?.filter(s => s.failures.length > 0) || [], [stats]);
+
+    // --- Render ---
 
     return (
-        <div className="min-h-screen bg-gray-50/50 dark:bg-gray-900/50 p-6 md:p-12 font-sans">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-[#F7F9FB] dark:bg-gray-900 p-4 md:p-8 font-sans text-gray-800 dark:text-gray-100 print:bg-white print:p-0">
 
-                {/* Header Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-center space-y-4"
-                >
-                    <div className="inline-flex items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/20 mb-4">
-                        <FileSpreadsheet className="w-8 h-8 text-white" />
-                    </div>
-                    <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        KPI Report Generator
-                    </h1>
-                    <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                        Upload your training data to automatically generate comprehensive regional performance reports.
-                    </p>
-                </motion.div>
-
-                {/* Upload Section */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700 p-8 backdrop-blur-sm"
-                >
-                    <div className="flex flex-col items-center justify-center space-y-8">
-                        <div className="w-full max-w-2xl">
-                            <label
-                                htmlFor="file-upload"
-                                className={`group flex flex-col items-center justify-center w-full h-52 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300
-                  ${file
-                                        ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/10'
-                                        : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 dark:hover:border-blue-500 bg-gray-50/50 dark:bg-gray-800/50 hover:bg-white dark:hover:bg-gray-800'
-                                    }`}
-                            >
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center">
-                                    {file ? (
-                                        <motion.div
-                                            initial={{ scale: 0.8, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            className="flex flex-col items-center"
-                                        >
-                                            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full mb-3">
-                                                <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                                            </div>
-                                            <p className="mb-1 text-lg text-gray-900 dark:text-white font-semibold">
-                                                {file.name}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                {(file.size / 1024).toFixed(1)} KB • Ready to process
-                                            </p>
-                                        </motion.div>
-                                    ) : (
-                                        <>
-                                            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-4 group-hover:scale-110 transition-transform duration-300">
-                                                <Upload className="w-8 h-8 text-blue-500 dark:text-blue-400" />
-                                            </div>
-                                            <p className="mb-2 text-lg text-gray-700 dark:text-gray-200 font-medium">
-                                                Click to upload or drag and drop
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                Excel files (.xlsx, .xls)
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                                <input
-                                    id="file-upload"
-                                    type="file"
-                                    accept=".xlsx, .xls"
-                                    className="hidden"
-                                    onChange={handleFileUpload}
-                                />
-                            </label>
+            {/* Header */}
+            <div className="max-w-[1600px] mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
+                            <FileSpreadsheet className="w-6 h-6 text-white" />
                         </div>
+                        KPI Report Dashboard
+                    </h1>
+                    <p className="text-gray-500 mt-1 ml-1">
+                        {stats ? `Analysis generated on ${new Date().toLocaleTimeString()}` : "Upload training data to begin analysis"}
+                    </p>
+                </div>
 
+                {stats && (
+                    <div className="flex gap-3">
+                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm font-medium text-sm">
+                            <Printer className="w-4 h-4" /> Print PDF
+                        </button>
+                        <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 font-medium text-sm">
+                            <Download className="w-4 h-4" /> Export Excel
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Upload Area (Hidden if stats exist) */}
+            {!stats && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto mt-20">
+                    <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-3xl cursor-pointer bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all group shadow-xl shadow-gray-200/50 dark:shadow-none">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            {file ? (
+                                <div className="text-center">
+                                    <CheckCircle className="w-12 h-12 text-green-500 mb-3 mx-auto" />
+                                    <p className="text-lg font-semibold text-gray-900 dark:text-white">{file.name}</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-4 group-hover:scale-110 transition-transform">
+                                        <Upload className="w-8 h-8 text-blue-500" />
+                                    </div>
+                                    <p className="mb-2 text-lg font-medium text-gray-700 dark:text-gray-200">Drop your Excel file here</p>
+                                    <p className="text-sm text-gray-500">Supports .xlsx, .xls</p>
+                                </>
+                            )}
+                        </div>
+                        <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
+                    </label>
+
+                    <div className="mt-6 flex justify-center">
                         <button
                             onClick={processFile}
                             disabled={!file || isProcessing}
-                            className={`
-                group relative inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white transition-all duration-200 rounded-xl
-                ${!file || isProcessing
-                                    ? 'bg-gray-300 dark:bg-gray-700 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5'
-                                }
-              `}
+                            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2"
                         >
-                            {isProcessing ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                    Processing Data...
-                                </>
-                            ) : (
-                                <>
-                                    Generate Analysis
-                                    <Download className="w-5 h-5 ml-2 group-hover:translate-y-0.5 transition-transform" />
-                                </>
-                            )}
+                            {isProcessing ? <Loader2 className="animate-spin" /> : "Generate Report"}
                         </button>
                     </div>
-
-                    <AnimatePresence>
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 text-red-700 dark:text-red-300 rounded-xl flex items-center justify-center gap-2"
-                            >
-                                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                <p className="text-sm font-medium">{error}</p>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
                 </motion.div>
+            )}
 
-                {/* Results Section */}
-                <AnimatePresence>
-                    {overallStats && stats && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 40 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.2 }}
-                            className="space-y-8"
-                        >
-                            {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {[
-                                    { label: "Avg Basic %", value: `${overallStats.avgBasicPercent}%`, color: "blue", sub: "Foundation" },
-                                    { label: "Avg Advance %", value: `${overallStats.avgAdvancePercent}%`, color: "green", sub: "Intermediate" },
-                                    { label: "Avg Expert %", value: `${overallStats.avgExpertPercent}%`, color: "purple", sub: "Mastery" },
-                                    { label: "Total Untrained", value: overallStats.totalUntrained, color: "red", sub: "Needs Action" },
-                                ].map((item, idx) => (
-                                    <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        transition={{ delay: 0.3 + idx * 0.1 }}
-                                        className={`
-                      relative overflow-hidden bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700
-                      hover:shadow-md transition-shadow duration-300
-                    `}
-                                    >
-                                        <div className={`absolute top-0 left-0 w-1 h-full bg-${item.color}-500`} />
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    {item.label}
-                                                </p>
-                                                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                                                    {item.value}
-                                                </h3>
-                                            </div>
-                                            <div className={`p-2 bg-${item.color}-50 dark:bg-${item.color}-900/20 rounded-lg`}>
-                                                <div className={`w-4 h-4 rounded-full bg-${item.color}-500`} />
-                                            </div>
-                                        </div>
-                                        <p className="mt-2 text-xs font-medium text-gray-400 dark:text-gray-500">
-                                            {item.sub}
-                                        </p>
-                                    </motion.div>
-                                ))}
-                            </div>
+            {/* Dashboard Content */}
+            {stats && overallStats && (
+                <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
 
-                            {/* Detailed Table */}
-                            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-[800px]">
-                                <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm flex flex-col sm:flex-row justify-between items-center gap-4 z-20">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                                            <Search className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                            Detailed Location Report
-                                        </h2>
+                    {/* Left Sidebar: Controls & Exceptions */}
+                    <div className="lg:col-span-3 space-y-6 print:hidden">
+                        {/* Filters */}
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+                            <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <Filter className="w-4 h-4" /> Filters
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Search Location</label>
+                                    <div className="relative">
+                                        <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="e.g. Pune..."
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                        />
                                     </div>
-                                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 px-4 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-600">
-                                        {stats.length} Locations Found
-                                    </span>
                                 </div>
+                                <div>
+                                    <label className="text-xs font-medium text-gray-500 uppercase mb-1 block">Region</label>
+                                    <select
+                                        value={filterRegion}
+                                        onChange={(e) => setFilterRegion(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm outline-none"
+                                    >
+                                        <option value="All">All Regions</option>
+                                        <option value="R1">Region 1</option>
+                                        <option value="R2">Region 2</option>
+                                        <option value="R3">Region 3</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2 pt-2">
+                                    <input
+                                        type="checkbox"
+                                        id="exceptions"
+                                        checked={showExceptionsOnly}
+                                        onChange={(e) => setShowExceptionsOnly(e.target.checked)}
+                                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <label htmlFor="exceptions" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                                        Show Exceptions Only
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
 
-                                <div className="overflow-auto flex-1 relative">
-                                    <table className="w-full text-sm text-left border-collapse">
-                                        <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 backdrop-blur-md shadow-sm">
-                                            <tr>
-                                                <th className="px-6 py-4 font-bold tracking-wider">Region</th>
-                                                <th className="px-6 py-4 font-bold tracking-wider">Dealer Location</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider">Total Emp</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-blue-600 dark:text-blue-400">Basic</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-blue-600 dark:text-blue-400">%</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-green-600 dark:text-green-400">Advance</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-green-600 dark:text-green-400">%</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-purple-600 dark:text-purple-400">Expert</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-purple-600 dark:text-purple-400">%</th>
-                                                <th className="px-6 py-4 text-center font-bold tracking-wider text-red-600 dark:text-red-400">Untrained</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                            {stats.map((stat, index) => (
-                                                <motion.tr
-                                                    key={index}
-                                                    initial={{ opacity: 0 }}
-                                                    animate={{ opacity: 1 }}
-                                                    transition={{ delay: 0.05 * Math.min(index, 20) }}
-                                                    className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group"
+                        {/* Exceptions Summary Panel */}
+                        <div id="exceptions-panel" className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-red-100 dark:border-red-900/30 overflow-hidden">
+                            <div className="p-4 bg-red-50 dark:bg-red-900/20 border-b border-red-100 dark:border-red-900/30 flex justify-between items-center">
+                                <h3 className="font-bold text-red-700 dark:text-red-400 flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4" /> KPI Exceptions
+                                </h3>
+                                <span className="bg-white dark:bg-red-900/50 text-red-700 dark:text-red-300 text-xs font-bold px-2 py-1 rounded-full">
+                                    {exceptionsList.length}
+                                </span>
+                            </div>
+                            <div className="max-h-[400px] overflow-y-auto p-2">
+                                {exceptionsList.length === 0 ? (
+                                    <div className="p-4 text-center text-gray-500 text-sm">No exceptions found. Great job!</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {exceptionsList.map((ex, idx) => (
+                                            <div key={idx} className="p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <span className="font-semibold text-gray-900 dark:text-white text-sm">{ex.location}</span>
+                                                    <span className="text-xs text-gray-500">{ex.region}</span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1 mb-2">
+                                                    {ex.failures.map(f => (
+                                                        <span key={f} className="text-[10px] uppercase font-bold px-1.5 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded">
+                                                            {f} Failed
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <button
+                                                    onClick={() => setUntrainedModalData({ location: ex.location, employees: ex.untrainedList })}
+                                                    className="w-full text-xs text-blue-600 dark:text-blue-400 hover:underline text-left flex items-center gap-1"
                                                 >
-                                                    <td className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">
-                                                        {stat.region}
-                                                    </td>
-                                                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    View {ex.untrained} Untrained <ChevronRight className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Main Table */}
+                    <div className="lg:col-span-9 space-y-6">
+
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:grid-cols-4">
+                            {[
+                                { label: "Basic Avg", val: overallStats.avgBasicPercent, color: "blue", target: 100 },
+                                { label: "Advance Avg", val: overallStats.avgAdvancePercent, color: "green", target: 60 },
+                                { label: "Expert Avg", val: overallStats.avgExpertPercent, color: "purple", target: 40 },
+                                { label: "Untrained", val: overallStats.totalUntrained, color: "red", target: 0, isCount: true },
+                            ].map((item, i) => (
+                                <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{item.label}</span>
+                                    <div className="flex items-end gap-2 mt-2">
+                                        <span className={`text-3xl font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
+                                            {item.val}{item.isCount ? "" : "%"}
+                                        </span>
+                                        {!item.isCount && (
+                                            <span className="text-xs text-gray-400 mb-1">/ {item.target}%</span>
+                                        )}
+                                    </div>
+                                    {!item.isCount && (
+                                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full mt-3 overflow-hidden">
+                                            <motion.div
+                                                initial={{ width: 0 }} animate={{ width: `${item.val}%` }}
+                                                className={`h-full bg-${item.color}-500 rounded-full`}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Main Table */}
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-[700px] print:max-h-none print:shadow-none print:border-none">
+                            <div className="overflow-auto flex-1 relative">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 backdrop-blur-md shadow-sm print:static">
+                                        <tr>
+                                            <th className="px-4 py-4 font-bold w-16">Reg</th>
+                                            <th className="px-4 py-4 font-bold">Location</th>
+                                            <th className="px-4 py-4 text-center font-bold">Total</th>
+                                            <th className="px-4 py-4 text-center font-bold text-blue-600">Basic</th>
+                                            <th className="px-4 py-4 text-center font-bold text-blue-600">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-green-600">Adv</th>
+                                            <th className="px-4 py-4 text-center font-bold text-green-600">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-purple-600">Exp</th>
+                                            <th className="px-4 py-4 text-center font-bold text-purple-600">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-red-600">Untrained</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {filteredStats.map((stat, idx) => {
+                                            const isFail = stat.failures.length > 0;
+                                            return (
+                                                <motion.tr
+                                                    key={idx}
+                                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                                    className={`
+                            group transition-colors
+                            ${isFail ? 'bg-[#FFECEC] dark:bg-red-900/10 hover:bg-[#FFE0E0]' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50'}
+                          `}
+                                                >
+                                                    <td className="px-4 py-3 font-medium text-gray-500">{stat.region}</td>
+                                                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                                                         {stat.location}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center text-gray-600 dark:text-gray-300 font-medium">
-                                                        {stat.totalEmployees}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center font-medium text-blue-600 dark:text-blue-400">
-                                                        {stat.basicTrained}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold text-xs
-                              ${stat.basicPercent === 100
-                                                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                                                            }`}>
+                                                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{stat.totalEmployees}</td>
+
+                                                    {/* Basic */}
+                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.basicTrained}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`font-bold ${stat.basicPercent < THRESHOLDS.BASIC ? 'text-[#FF4C4C]' : 'text-blue-600'}`}>
                                                             {stat.basicPercent}%
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center font-medium text-green-600 dark:text-green-400">
-                                                        {stat.advanceTrained}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold text-xs
-                              ${stat.advancePercent >= 75
-                                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                                                            }`}>
+
+                                                    {/* Advance */}
+                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.advanceTrained}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`font-bold ${stat.advancePercent < THRESHOLDS.ADVANCE ? 'text-[#FF4C4C]' : 'text-green-600'}`}>
                                                             {stat.advancePercent}%
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center font-medium text-purple-600 dark:text-purple-400">
-                                                        {stat.expertTrained}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                        <span className={`inline-flex items-center justify-center w-12 h-8 rounded-lg font-bold text-xs
-                              ${stat.expertPercent >= 50
-                                                                ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                                                                : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                                                            }`}>
+
+                                                    {/* Expert */}
+                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.expertTrained}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                        <span className={`font-bold ${stat.expertPercent < THRESHOLDS.EXPERT ? 'text-[#FF4C4C]' : 'text-purple-600'}`}>
                                                             {stat.expertPercent}%
                                                         </span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-center font-medium text-red-600 dark:text-red-400">
-                                                        {stat.untrained > 0 ? stat.untrained : "-"}
+
+                                                    {/* Untrained Action */}
+                                                    <td className="px-4 py-3 text-center">
+                                                        {stat.untrained > 0 ? (
+                                                            <button
+                                                                onClick={() => setUntrainedModalData({ location: stat.location, employees: stat.untrainedList })}
+                                                                className="inline-flex items-center justify-center px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold hover:bg-red-200 transition-colors"
+                                                            >
+                                                                {stat.untrained} <UserX className="w-3 h-3 ml-1" />
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-gray-300">-</span>
+                                                        )}
                                                     </td>
                                                 </motion.tr>
-                                            ))}
-                                        </tbody>
-                                        {/* Sticky Footer / Summary Row */}
-                                        <tfoot className="sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-                                            <tr className="bg-blue-50 dark:bg-blue-900/40 border-t-2 border-blue-200 dark:border-blue-800">
-                                                <td colSpan={2} className="px-6 py-5 font-bold text-gray-900 dark:text-white text-right uppercase tracking-wider">
-                                                    Grand Total
-                                                </td>
-                                                <td className="px-6 py-5 text-center font-bold text-gray-900 dark:text-white text-lg">
-                                                    {overallStats.totalEmployees}
-                                                </td>
-                                                <td className="px-6 py-5 text-center font-bold text-blue-700 dark:text-blue-300 text-lg">
-                                                    {overallStats.totalBasic}
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-blue-600 text-white font-bold text-sm shadow-sm">
-                                                        {overallStats.avgBasicPercent}%
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-5 text-center font-bold text-green-700 dark:text-green-300 text-lg">
-                                                    {overallStats.totalAdvance}
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-green-600 text-white font-bold text-sm shadow-sm">
-                                                        {overallStats.avgAdvancePercent}%
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-5 text-center font-bold text-purple-700 dark:text-purple-300 text-lg">
-                                                    {overallStats.totalExpert}
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    <span className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-purple-600 text-white font-bold text-sm shadow-sm">
-                                                        {overallStats.avgExpertPercent}%
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-5 text-center font-bold text-red-600 dark:text-red-400 text-lg">
-                                                    {overallStats.totalUntrained}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    </table>
+                                            );
+                                        })}
+                                    </tbody>
+                                    <tfoot className="sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] print:table-row-group">
+                                        <tr className="bg-blue-50 dark:bg-blue-900/40 border-t-2 border-blue-200 dark:border-blue-800">
+                                            <td colSpan={2} className="px-4 py-4 font-bold text-right uppercase text-gray-700 dark:text-gray-200">Grand Total</td>
+                                            <td className="px-4 py-4 text-center font-bold text-lg">{overallStats.totalEmployees}</td>
+                                            <td className="px-4 py-4 text-center font-bold text-blue-700">{overallStats.totalBasic}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-blue-100/50">{overallStats.avgBasicPercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-green-700">{overallStats.totalAdvance}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-green-100/50">{overallStats.avgAdvancePercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-purple-700">{overallStats.totalExpert}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-purple-100/50">{overallStats.avgExpertPercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-red-600">{overallStats.totalUntrained}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Untrained Modal */}
+            <AnimatePresence>
+                {untrainedModalData && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm print:hidden">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white dark:bg-gray-900 w-full max-w-4xl max-h-[80vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                        >
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Untrained Employees</h2>
+                                    <p className="text-sm text-gray-500">Location: {untrainedModalData.location}</p>
                                 </div>
+                                <button onClick={() => setUntrainedModalData(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors">
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="flex-1 overflow-auto p-6">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800 sticky top-0">
+                                        <tr>
+                                            <th className="px-4 py-3 rounded-l-lg">ID</th>
+                                            <th className="px-4 py-3">Name</th>
+                                            <th className="px-4 py-3">Designation</th>
+                                            <th className="px-4 py-3">Mobile</th>
+                                            <th className="px-4 py-3">DOJ</th>
+                                            <th className="px-4 py-3 rounded-r-lg">Sub Category</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                        {untrainedModalData.employees.map((emp, i) => (
+                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                <td className="px-4 py-3 font-mono text-xs text-gray-500">{emp.id}</td>
+                                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{emp.name}</td>
+                                                <td className="px-4 py-3 text-gray-600">{emp.designation}</td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-gray-600">{emp.mobile}</span>
+                                                        {emp.mobile !== "-" && (
+                                                            <a href={`tel:${emp.mobile}`} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                                                                <Phone className="w-3 h-3" />
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 text-gray-600">{emp.doj}</td>
+                                                <td className="px-4 py-3 text-gray-600">{emp.subCategory}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
+                                <button
+                                    onClick={() => {
+                                        const text = untrainedModalData.employees.map(e => `${e.name} (${e.mobile})`).join('\n');
+                                        navigator.clipboard.writeText(text);
+                                        toast.success("Copied to clipboard");
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                                >
+                                    <Copy className="w-4 h-4" /> Copy List
+                                </button>
                             </div>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Print Styles */}
+            <style jsx global>{`
+        @media print {
+          @page { size: landscape; margin: 10mm; }
+          body { background: white; color: black; }
+          .print\\:hidden { display: none !important; }
+          .print\\:block { display: block !important; }
+          .print\\:table-row-group { display: table-row-group !important; }
+          .print\\:max-h-none { max-height: none !important; overflow: visible !important; }
+          .print\\:shadow-none { box-shadow: none !important; }
+          .print\\:border-none { border: none !important; }
+          /* Ensure colors print */
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      `}</style>
         </div>
     );
 }
