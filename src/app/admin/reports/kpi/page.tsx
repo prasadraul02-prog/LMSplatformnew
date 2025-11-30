@@ -117,23 +117,82 @@ export default function KPIReportPage() {
             const headers = jsonDataRaw[0] as string[];
 
             // Column Detection
+            // Column Detection Strategy:
+            // 1. Try fuzzy header matching
+            // 2. If failed, try content-based detection by scanning first 50 rows
+
+            let locationCol = findColumnName(headers, ['dealerlocation', 'location', 'branch', 'city', 'site', 'dealer', 'region', 'zone']);
+            let levelCol = findColumnName(headers, ['traininglevel', 'level', 'status', 'grade', 'competency', 'training', 'course']);
+
+            // Other columns (less critical for core logic but needed for details)
+            const idCol = findColumnName(headers, ['employeeid', 'empid', 'id', 'code', 'user']);
+            const nameCol = findColumnName(headers, ['employeename', 'name', 'fullname', 'empname', 'employee']);
+            const designationCol = findColumnName(headers, ['designation', 'role', 'position', 'job']);
+            const mobileCol = findColumnName(headers, ['mobile', 'phone', 'contact', 'cell', 'no']);
+            const dojCol = findColumnName(headers, ['doj', 'dateofjoining', 'joining', 'date']);
+            const subCategoryCol = findColumnName(headers, ['subcategory', 'category', 'dept', 'department']);
+
             const cols = {
-                location: findColumnName(headers, ['dealerlocation', 'location', 'branch', 'city', 'site']),
-                level: findColumnName(headers, ['traininglevel', 'level', 'status', 'grade', 'competency']),
-                id: findColumnName(headers, ['employeeid', 'empid', 'id', 'code']),
-                name: findColumnName(headers, ['employeename', 'name', 'fullname', 'empname']),
-                designation: findColumnName(headers, ['designation', 'role', 'position', 'job']),
-                mobile: findColumnName(headers, ['mobile', 'phone', 'contact', 'cell']),
-                doj: findColumnName(headers, ['doj', 'dateofjoining', 'joining']),
-                subCategory: findColumnName(headers, ['subcategory', 'category', 'dept', 'department'])
+                location: locationCol,
+                level: levelCol,
+                id: idCol,
+                name: nameCol,
+                designation: designationCol,
+                mobile: mobileCol,
+                doj: dojCol,
+                subCategory: subCategoryCol
             };
 
-            if (!cols.location || !cols.level) {
-                throw new Error("Missing required columns: Location or Training Level");
+            // Content-Based Fallback
+            if (!locationCol || !levelCol) {
+                const jsonDataForDetection = XLSX.utils.sheet_to_json(worksheet);
+                const sampleSize = Math.min(jsonDataForDetection.length, 50);
+                const scores: Record<string, { location: number, level: number }> = {};
+
+                headers.forEach(h => scores[h] = { location: 0, level: 0 });
+
+                for (let i = 0; i < sampleSize; i++) {
+                    const row: any = jsonDataForDetection[i];
+                    headers.forEach(header => {
+                        const val = String(row[header] || "").toLowerCase();
+
+                        // Check Location (match against known regions)
+                        if (Object.keys(REGION_MAPPING).some(k => val.includes(k.toLowerCase()))) {
+                            scores[header].location++;
+                        }
+
+                        // Check Level (match against keywords)
+                        if (val.includes("basic") || val.includes("advance") || val.includes("expert")) {
+                            scores[header].level++;
+                        }
+                    });
+                }
+
+                // Find best matches
+                let bestLoc = { header: "", score: 0 };
+                let bestLevel = { header: "", score: 0 };
+
+                Object.entries(scores).forEach(([header, score]) => {
+                    if (score.location > bestLoc.score) bestLoc = { header, score: score.location };
+                    if (score.level > bestLevel.score) bestLevel = { header, score: score.level };
+                });
+
+                // Threshold: at least 10% of sample rows must match
+                const threshold = Math.ceil(sampleSize * 0.1);
+
+                if (!locationCol && bestLoc.score >= threshold) {
+                    locationCol = bestLoc.header;
+                    cols.location = locationCol;
+                }
+                if (!levelCol && bestLevel.score >= threshold) {
+                    levelCol = bestLevel.header;
+                    cols.level = levelCol;
+                }
             }
 
-            const locationCol = cols.location;
-            const levelCol = cols.level;
+            if (!cols.location || !cols.level) {
+                throw new Error(`Could not detect required columns. Found headers: ${headers.join(", ")}. Please ensure columns for 'Location' and 'Training Level' exist.`);
+            }
 
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
             const locationMap = new Map<string, LocationStats>();
