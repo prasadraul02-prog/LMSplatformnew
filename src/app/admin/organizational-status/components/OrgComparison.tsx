@@ -1,0 +1,317 @@
+'use client'
+
+import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { compareOrgSheet, applyChanges } from '../actions';
+import { toast } from "sonner";
+import { Loader2, Upload, ArrowRight, UserPlus, UserMinus } from "lucide-react";
+
+interface Organization {
+    id: string;
+    name: string;
+    order: number;
+}
+
+interface OrgComparisonProps {
+    organizations: Organization[];
+}
+
+export default function OrgComparison({ organizations }: OrgComparisonProps) {
+    const [activeOrg, setActiveOrg] = useState(organizations[0]?.name || '');
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [comparisonResult, setComparisonResult] = useState<any>(null);
+    const [isApplying, setIsApplying] = useState(false);
+
+    // Update active org if organizations change (e.g. after add/delete)
+    useEffect(() => {
+        if (organizations.length > 0 && !organizations.find(o => o.name === activeOrg)) {
+            setActiveOrg(organizations[0].name);
+        }
+    }, [organizations, activeOrg]);
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files?.[0]) return;
+
+        setIsAnalyzing(true);
+        setComparisonResult(null);
+        const formData = new FormData();
+        formData.append('file', e.target.files[0]);
+
+        const result = await compareOrgSheet(formData, activeOrg);
+        if (result.success) {
+            setComparisonResult(result.data);
+            toast.success("Analysis complete. Please review changes.");
+        } else {
+            toast.error(result.error);
+        }
+        setIsAnalyzing(false);
+        e.target.value = '';
+    };
+
+    const handleApply = async (type: 'new' | 'status' | 'transfer', items: any[]) => {
+        if (items.length === 0) return;
+
+        setIsApplying(true);
+        const payload: any = { orgName: activeOrg };
+        if (type === 'new') payload.newEmployees = items;
+        if (type === 'status') payload.statusChanges = items;
+        if (type === 'transfer') payload.transfers = items;
+
+        const result = await applyChanges(payload);
+        if (result.success) {
+            toast.success(result.message);
+            // Remove applied items from local state
+            setComparisonResult((prev: any) => {
+                if (!prev) return null;
+                const newState = { ...prev };
+                if (type === 'new') newState.newEmployees = [];
+                if (type === 'status') newState.statusChanges = [];
+                if (type === 'transfer') newState.transfers = [];
+                return newState;
+            });
+        } else {
+            toast.error(result.error);
+        }
+        setIsApplying(false);
+    };
+
+    if (organizations.length === 0) {
+        return (
+            <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                    No organizations configured. Please add an organization in the settings below.
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold">Organization-wise Options</h2>
+            <Tabs value={activeOrg} onValueChange={setActiveOrg} className="w-full">
+                <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
+                    {organizations.map(org => (
+                        <TabsTrigger
+                            key={org.id}
+                            value={org.name}
+                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background"
+                        >
+                            {org.name}
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
+
+                {organizations.map(org => (
+                    <TabsContent key={org.id} value={org.name} className="mt-6 space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>{org.name} - Employee Management</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/10">
+                                    <div className="text-center space-y-4">
+                                        <p className="text-muted-foreground">Upload the latest organizational sheet (Staff, Trial, Contract)</p>
+                                        <div className="relative inline-block">
+                                            <input
+                                                type="file"
+                                                accept=".xlsx, .xls"
+                                                onChange={handleFileUpload}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                disabled={isAnalyzing}
+                                            />
+                                            <Button size="lg" disabled={isAnalyzing}>
+                                                {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                                Import & Analyze Sheet
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {comparisonResult && (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                {/* New Employees */}
+                                {comparisonResult.newEmployees.length > 0 && (
+                                    <Card className="border-l-4 border-l-green-500">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center text-green-700">
+                                                <UserPlus className="mr-2 h-5 w-5" />
+                                                New Employees Found ({comparisonResult.newEmployees.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="mb-4 text-sm text-muted-foreground">
+                                                These employees are present in the uploaded sheet but NOT in the Master Database.
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-muted sticky top-0">
+                                                        <tr>
+                                                            <th className="p-2 text-left">Unique ID</th>
+                                                            <th className="p-2 text-left">Name</th>
+                                                            <th className="p-2 text-left">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {comparisonResult.newEmployees.map((emp: any, i: number) => (
+                                                            <tr key={i} className="border-t">
+                                                                <td className="p-2">{emp.uniqueId}</td>
+                                                                <td className="p-2">{emp.name}</td>
+                                                                <td className="p-2">{emp.status}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <Button onClick={() => handleApply('new', comparisonResult.newEmployees)} disabled={isApplying}>
+                                                    Yes, Add to Master Database
+                                                </Button>
+                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, newEmployees: [] })}>
+                                                    No, Ignore
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Resigned Employees */}
+                                {comparisonResult.resignedEmployees.length > 0 && (
+                                    <Card className="border-l-4 border-l-red-500">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center text-red-700">
+                                                <UserMinus className="mr-2 h-5 w-5" />
+                                                Potential Resignations ({comparisonResult.resignedEmployees.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="mb-4 text-sm text-muted-foreground">
+                                                These employees are in the Master Database for {org.name} but NOT in the uploaded sheet.
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-muted sticky top-0">
+                                                        <tr>
+                                                            <th className="p-2 text-left">Unique ID</th>
+                                                            <th className="p-2 text-left">Name</th>
+                                                            <th className="p-2 text-left">Designation</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {comparisonResult.resignedEmployees.map((emp: any, i: number) => (
+                                                            <tr key={i} className="border-t">
+                                                                <td className="p-2">{emp.uniqueId}</td>
+                                                                <td className="p-2">{emp.name}</td>
+                                                                <td className="p-2">{emp.designation}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <Button variant="secondary" disabled>
+                                                Marked as Resigned (Display Only)
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Status Changes */}
+                                {comparisonResult.statusChanges.length > 0 && (
+                                    <Card className="border-l-4 border-l-blue-500">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center text-blue-700">
+                                                <ArrowRight className="mr-2 h-5 w-5" />
+                                                Status Changes ({comparisonResult.statusChanges.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="mb-4 text-sm text-muted-foreground">
+                                                Employees moved from ON TRIAL to PERMANENT.
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-muted sticky top-0">
+                                                        <tr>
+                                                            <th className="p-2 text-left">Name</th>
+                                                            <th className="p-2 text-left">Old Status</th>
+                                                            <th className="p-2 text-left">New Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {comparisonResult.statusChanges.map((emp: any, i: number) => (
+                                                            <tr key={i} className="border-t">
+                                                                <td className="p-2">{emp.name}</td>
+                                                                <td className="p-2 text-red-500">{emp.oldStatus}</td>
+                                                                <td className="p-2 text-green-500">{emp.newStatus}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <Button onClick={() => handleApply('status', comparisonResult.statusChanges)} disabled={isApplying}>
+                                                    Yes, Update Status
+                                                </Button>
+                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, statusChanges: [] })}>
+                                                    No, Keep Old Status
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Transfers */}
+                                {comparisonResult.transfers.length > 0 && (
+                                    <Card className="border-l-4 border-l-purple-500">
+                                        <CardHeader>
+                                            <CardTitle className="flex items-center text-purple-700">
+                                                <ArrowRight className="mr-2 h-5 w-5" />
+                                                Inter-Organization Transfers ({comparisonResult.transfers.length})
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <p className="mb-4 text-sm text-muted-foreground">
+                                                Employees transferred from other organizations to {org.name}.
+                                            </p>
+                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
+                                                <table className="w-full text-sm">
+                                                    <thead className="bg-muted sticky top-0">
+                                                        <tr>
+                                                            <th className="p-2 text-left">Name</th>
+                                                            <th className="p-2 text-left">From</th>
+                                                            <th className="p-2 text-left">To</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {comparisonResult.transfers.map((emp: any, i: number) => (
+                                                            <tr key={i} className="border-t">
+                                                                <td className="p-2">{emp.name}</td>
+                                                                <td className="p-2">{emp.oldOrg}</td>
+                                                                <td className="p-2 font-bold">{emp.newOrg}</td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div className="flex gap-4">
+                                                <Button onClick={() => handleApply('transfer', comparisonResult.transfers)} disabled={isApplying}>
+                                                    Yes, Confirm Transfer
+                                                </Button>
+                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, transfers: [] })}>
+                                                    No, Ignore
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+                            </div>
+                        )}
+                    </TabsContent>
+                ))}
+            </Tabs>
+        </div>
+    );
+}
