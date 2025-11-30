@@ -197,8 +197,12 @@ export default function KPIReportPage() {
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
             const locationMap = new Map<string, LocationStats>();
 
+            // We verified cols.location and cols.level above, so locationCol and levelCol are safe to use as strings
+            const finalLocationCol = locationCol!;
+            const finalLevelCol = levelCol!;
+
             jsonData.forEach((row: any) => {
-                const loc = normalizeString(row[locationCol]);
+                const loc = normalizeString(row[finalLocationCol]);
                 if (!loc) return;
 
                 if (!locationMap.has(loc)) {
@@ -219,7 +223,7 @@ export default function KPIReportPage() {
                 const stat = locationMap.get(loc)!;
                 stat.totalEmployees++;
 
-                const level = normalizeString(row[levelCol]).toLowerCase();
+                const level = normalizeString(row[finalLevelCol]).toLowerCase();
                 const emp: Employee = {
                     id: cols.id ? normalizeString(row[cols.id]) : "N/A",
                     name: cols.name ? normalizeString(row[cols.name]) : "Unknown",
