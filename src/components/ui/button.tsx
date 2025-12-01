@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 
+const MotionSlot = motion(Slot)
+
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     asChild?: boolean
@@ -37,14 +39,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         if (asChild) {
             return (
-                <motion(Slot)
+                <MotionSlot
                     className={cn(baseStyles, variants[variant], sizes[size], className)}
                     ref={ref}
                     whileTap={{ scale: 0.98 }}
                     {...props}
                 >
                     {children}
-                </motion(Slot)>
+                </MotionSlot>
             )
         }
 
