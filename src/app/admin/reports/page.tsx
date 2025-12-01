@@ -7,10 +7,13 @@ import {
     TrendingUp,
     Award,
     BookOpen,
-    ArrowRight
+    ArrowRight,
+    Download,
+    Search
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default async function ReportsPage() {
     // Fetch data for reports in parallel
@@ -54,7 +57,7 @@ export default async function ReportsPage() {
     const reportTools = [
         {
             title: "KPI Generator",
-            description: "Generate detailed Key Performance Indicator reports based on training levels and compliance.",
+            description: "Generate detailed Key Performance Indicator reports.",
             icon: TrendingUp,
             href: "/admin/reports/kpi",
             color: "text-blue-500",
@@ -62,7 +65,7 @@ export default async function ReportsPage() {
         },
         {
             title: "Organizational Report",
-            description: "View comprehensive organizational structure, hierarchy, and department-wise statistics.",
+            description: "View comprehensive organizational structure reports.",
             icon: Users,
             href: "/admin/reports/organizational-report",
             color: "text-purple-500",
@@ -71,19 +74,23 @@ export default async function ReportsPage() {
     ];
 
     return (
-        <div className="p-6 space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-background">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
-                    <p className="text-muted-foreground mt-2">
-                        Monitor training progress, generate reports, and analyze performance.
+                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+                    <p className="text-muted-foreground mt-1 sm:mt-2">
+                        Monitor training progress and organizational performance.
                     </p>
                 </div>
+                <Button>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Summary
+                </Button>
             </div>
 
             {/* Quick Stats Overview */}
-            <div className="grid gap-4 md:grid-cols-3">
-                <Card>
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
+                <Card className="hover:border-primary/60 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
                         <Award className="h-4 w-4 text-muted-foreground" />
@@ -93,7 +100,7 @@ export default async function ReportsPage() {
                         <p className="text-xs text-muted-foreground">Across all courses</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover:border-primary/60 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Enrollments</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -103,93 +110,94 @@ export default async function ReportsPage() {
                         <p className="text-xs text-muted-foreground">Active learning paths</p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="hover:border-primary/60 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Certificates Issued</CardTitle>
                         <FileText className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{completedEnrollments}</div>
-                        <p className="text-xs text-muted-foreground">Successful completions</p>
+                        <p className="text-xs text-muted-foreground">For completed courses</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Report Tools Section */}
-            <div>
-                <h2 className="text-xl font-semibold mb-4">Report Tools</h2>
-                <div className="grid gap-6 md:grid-cols-2">
-                    {reportTools.map((tool) => (
-                        <Link key={tool.title} href={tool.href}>
-                            <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-l-4" style={{ borderLeftColor: tool.color.includes('blue') ? '#3b82f6' : '#a855f7' }}>
-                                <CardHeader>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`p-2 rounded-lg ${tool.bgColor}`}>
-                                            <tool.icon className={`h-6 w-6 ${tool.color}`} />
-                                        </div>
-                                        <CardTitle className="text-lg">{tool.title}</CardTitle>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <CardDescription className="text-base mb-4">
-                                        {tool.description}
-                                    </CardDescription>
-                                    <Button variant="ghost" className="p-0 h-auto font-medium hover:bg-transparent group">
-                                        Open Tool <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))}
-                </div>
-            </div>
-
-            {/* Department Performance Table */}
-            <div>
-                <h2 className="text-xl font-semibold mb-4">Department Performance</h2>
-                <Card>
-                    <CardContent className="p-0">
-                        <div className="relative w-full overflow-auto">
-                            <table className="w-full caption-bottom text-sm">
-                                <thead className="[&_tr]:border-b">
-                                    <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Department</th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Completion Rate</th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Total Enrollments</th>
-                                        <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Completed</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="[&_tr:last-child]:border-0">
-                                    {deptStats.map((stat, idx) => (
-                                        <tr key={idx} className="border-b transition-colors hover:bg-muted/50">
-                                            <td className="p-4 align-middle font-medium">{stat.name}</td>
-                                            <td className="p-4 align-middle">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden w-[100px]">
-                                                        <div
-                                                            className="h-full bg-primary"
-                                                            style={{ width: `${stat.rate}%` }}
-                                                        />
+            <div className="grid gap-8 lg:grid-cols-5 lg:gap-8">
+                {/* Main Content: Department Performance */}
+                <div className="lg:col-span-3">
+                    <Card className="h-full">
+                        <CardHeader>
+                            <CardTitle>Department Performance</CardTitle>
+                            <CardDescription>Completion rates and enrollment stats by department.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="relative w-full overflow-auto">
+                                <table className="w-full caption-bottom text-sm">
+                                    <thead className="[&_tr]:border-b">
+                                        <tr className="border-b transition-colors hover:bg-muted/50">
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Department</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[150px]">Completion Rate</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Enrollments</th>
+                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Completed</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="[&_tr:last-child]:border-0">
+                                        {deptStats.map((stat) => (
+                                            <tr key={stat.name} className="border-b transition-colors hover:bg-muted/50">
+                                                <td className="p-4 align-middle font-medium">{stat.name}</td>
+                                                <td className="p-4 align-middle">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
+                                                            <div className="h-full bg-primary" style={{ width: `${stat.rate}%` }} />
+                                                        </div>
+                                                        <span className="text-xs text-muted-foreground font-mono">{stat.rate}%</span>
                                                     </div>
-                                                    <span className="text-xs text-muted-foreground">{stat.rate}%</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-4 align-middle">{stat.total}</td>
-                                            <td className="p-4 align-middle">{stat.completed}</td>
-                                        </tr>
-                                    ))}
-                                    {deptStats.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="p-4 text-center text-muted-foreground">
-                                                No department data available.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
+                                                </td>
+                                                <td className="p-4 align-middle text-center">{stat.total}</td>
+                                                <td className="p-4 align-middle text-center">{stat.completed}</td>
+                                            </tr>
+                                        ))}
+                                        {deptStats.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} className="p-8 text-center text-muted-foreground">
+                                                    No department data available.
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Side Content: Report Tools */}
+                <div className="lg:col-span-2 space-y-8">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Report Tools</CardTitle>
+                            <CardDescription>Generate and view custom reports.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {reportTools.map((tool) => (
+                                <Link key={tool.title} href={tool.href} className="block">
+                                    <div className="p-4 rounded-lg border bg-card hover:bg-muted transition-colors flex items-center justify-between">
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-2 rounded-lg ${tool.bgColor}`}>
+                                                <tool.icon className={`h-6 w-6 ${tool.color}`} />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold">{tool.title}</h3>
+                                                <p className="text-sm text-muted-foreground">{tool.description}</p>
+                                            </div>
+                                        </div>
+                                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                </Link>
+                            ))}
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     );
