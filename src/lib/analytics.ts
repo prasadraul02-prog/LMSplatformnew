@@ -1,8 +1,9 @@
+import type { NextWebVitalsMetric } from 'next/app';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 
 // Web Vitals tracking
-export function reportWebVitals({ id, name, label, value }: any) {
+export function reportWebVitals({ id, name, label, value }: NextWebVitalsMetric) {
     // Send to analytics endpoint
     if (typeof window !== 'undefined' && window.gtag) {
         window.gtag('event', name, {

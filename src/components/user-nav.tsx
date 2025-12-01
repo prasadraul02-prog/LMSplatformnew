@@ -35,7 +35,7 @@ export function UserNav() {
                                 img.style.display = 'none';
                             }}
                         />
-                        <AvatarFallback className="bg-gradient-to-br from-violet-500 to-indigo-600 text-white">
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-accent text-primary-foreground">
                             {fallback}
                         </AvatarFallback>
                     </Avatar>

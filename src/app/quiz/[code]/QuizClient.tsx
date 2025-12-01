@@ -239,7 +239,7 @@ export default function QuizClient({ code }: { code: string }) {
             <div className="flex items-center justify-center min-h-screen p-4">
                 <Card className="max-w-md w-full">
                     <CardContent className="flex flex-col items-center justify-center py-12">
-                        <AlertCircle className="h-16 w-16 text-red-600 mb-4" />
+                        <AlertCircle className="h-16 w-16 text-destructive mb-4" />
                         <h3 className="text-xl font-semibold mb-2">Unable to Load Quiz</h3>
                         <p className="text-muted-foreground text-center">{error}</p>
                     </CardContent>
@@ -250,14 +250,14 @@ export default function QuizClient({ code }: { code: string }) {
 
     if (submitted && result) {
         return (
-            <div className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+            <div className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-background via-primary/10 to-accent/10">
                 <Card className="max-w-3xl w-full elevated">
                     <CardHeader className="text-center pb-3">
                         <div className="flex justify-center mb-4">
                             {result.passed ? (
-                                <CheckCircle className="h-20 w-20 text-green-600" />
+                                <CheckCircle className="h-20 w-20 text-success" />
                             ) : (
-                                <XCircle className="h-20 w-20 text-red-600" />
+                                <XCircle className="h-20 w-20 text-destructive" />
                             )}
                         </div>
                         <CardTitle className="text-3xl">
@@ -272,7 +272,7 @@ export default function QuizClient({ code }: { code: string }) {
                             <p className="text-muted-foreground">
                                 {result.score} / {result.totalPoints} points
                             </p>
-                            <p className={`text-lg font-semibold ${result.passed ? 'text-green-600' : 'text-red-600'
+                            <p className={`text-lg font-semibold ${result.passed ? 'text-success' : 'text-destructive'
                                 }`}>
                                 {result.passed ? 'You Passed!' : 'You Did Not Pass'}
                             </p>
@@ -290,23 +290,23 @@ export default function QuizClient({ code }: { code: string }) {
                                             <CardContent className="p-4">
                                                 <div className="flex gap-2">
                                                     {answer.isCorrect ? (
-                                                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                                                        <CheckCircle className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
                                                     ) : (
-                                                        <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                                        <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                                                     )}
                                                     <div className="flex-1 space-y-2">
                                                         <p className="font-medium">{answer.questionText}</p>
                                                         <div className="space-y-1 text-sm">
                                                             <p>
                                                                 <span className="text-muted-foreground">Your answer: </span>
-                                                                <span className={answer.isCorrect ? 'text-green-600' : 'text-red-600'}>
+                                                                <span className={answer.isCorrect ? 'text-success' : 'text-destructive'}>
                                                                     {answer.selectedOption}
                                                                 </span>
                                                             </p>
                                                             {!answer.isCorrect && (
                                                                 <p>
                                                                     <span className="text-muted-foreground">Correct answer: </span>
-                                                                    <span className="text-green-600">{answer.correctOption}</span>
+                                                                    <span className="text-success">{answer.correctOption}</span>
                                                                 </p>
                                                             )}
                                                         </div>
@@ -330,7 +330,7 @@ export default function QuizClient({ code }: { code: string }) {
 
     if (!started) {
         return (
-            <div className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+            <div className="min-h-screen p-4 flex items-center justify-center bg-gradient-to-br from-background via-primary/10 to-accent/10">
                 <Card className="max-w-2xl w-full elevated">
                     <CardHeader>
                         <CardTitle className="text-2xl">{quiz?.title}</CardTitle>
@@ -340,7 +340,7 @@ export default function QuizClient({ code }: { code: string }) {
                     </CardHeader>
                     <CardContent className="space-y-6">
                         {quiz?.instructions && (
-                            <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                            <div className="bg-primary/10 dark:bg-primary/20 p-4 rounded-lg">
                                 <h3 className="font-semibold mb-2">Instructions</h3>
                                 <p className="text-sm whitespace-pre-line">{quiz.instructions}</p>
                             </div>
@@ -408,7 +408,7 @@ export default function QuizClient({ code }: { code: string }) {
     }
 
     return (
-        <div className="min-h-screen p-4 pb-20 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="min-h-screen p-4 pb-20 bg-gradient-to-br from-background via-primary/10 to-accent/10">
             <div className="max-w-4xl mx-auto space-y-4">
                 {/* Header with timer */}
                 <Card className="elevated sticky top-4 z-10">
@@ -417,9 +417,8 @@ export default function QuizClient({ code }: { code: string }) {
                             <h1 className="text-xl font-bold">{quiz?.title}</h1>
                             {timeRemaining !== null && (
                                 <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${timeRemaining < 60
-                                    ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300'
-                                    : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                                    }`}>
+                                                                    ? 'bg-destructive/10 dark:bg-destructive/20 text-destructive dark:text-destructive-foreground'
+                                                                    : 'bg-primary/10 dark:bg-primary/20 text-primary dark:text-primary-foreground'                                    }`}>
                                     <Clock className="h-5 w-5" />
                                     <span className="text-lg font-bold tabular-nums">
                                         {formatTime(timeRemaining)}

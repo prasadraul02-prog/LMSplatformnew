@@ -134,7 +134,7 @@ export function NotificationDropdown() {
                                             {notification.message}
                                         </span>
                                         {!notification.read && (
-                                            <span className="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-1" />
+                                            <span className="h-2 w-2 rounded-full bg-primary flex-shrink-0 mt-1" />
                                         )}
                                     </div>
                                     <span className="text-xs text-muted-foreground">

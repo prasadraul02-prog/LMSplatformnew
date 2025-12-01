@@ -125,7 +125,7 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
                     {/* Quiz Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <FileQuestion className="h-5 w-5 text-blue-600" />
+                            <FileQuestion className="h-5 w-5 text-primary" />
                             <div>
                                 <div className="text-2xl font-bold">{quiz._count.questions}</div>
                                 <div className="text-xs text-muted-foreground">Questions</div>
@@ -134,7 +134,7 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
 
                         {quiz.timeLimit && (
                             <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                                <Clock className="h-5 w-5 text-orange-600" />
+                                <Clock className="h-5 w-5 text-warning" />
                                 <div>
                                     <div className="text-2xl font-bold">{quiz.timeLimit}</div>
                                     <div className="text-xs text-muted-foreground">Minutes</div>
@@ -143,7 +143,7 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
                         )}
 
                         <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-                            <Target className="h-5 w-5 text-green-600" />
+                            <Target className="h-5 w-5 text-success" />
                             <div>
                                 <div className="text-2xl font-bold">{quiz.passScore}%</div>
                                 <div className="text-xs text-muted-foreground">Pass Score</div>
@@ -153,7 +153,7 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
 
                     {/* Instructions */}
                     {quiz.instructions && (
-                        <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                        <div className="bg-primary/10 dark:bg-primary/20 p-4 rounded-lg">
                             <h3 className="font-semibold mb-2 flex items-center gap-2">
                                 <Trophy className="h-4 w-4" />
                                 Instructions
@@ -163,9 +163,9 @@ export default function EmployeeQuizDetailPage({ params }: { params: { id: strin
                     )}
 
                     {/* Important Notes */}
-                    <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg space-y-2">
-                        <h3 className="font-semibold text-amber-900 dark:text-amber-100">Important Notes:</h3>
-                        <ul className="text-sm space-y-1 text-amber-800 dark:text-amber-200">
+                    <div className="bg-warning/10 dark:bg-warning/20 p-4 rounded-lg space-y-2">
+                        <h3 className="font-semibold text-warning dark:text-warning-foreground">Important Notes:</h3>
+                        <ul className="text-sm space-y-1 text-warning dark:text-warning-foreground">
                             {quiz.timeLimit && (
                                 <li>• Timer starts when you click "Start Quiz"</li>
                             )}

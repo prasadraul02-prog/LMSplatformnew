@@ -54,7 +54,7 @@ async function AvailableQuizzes({ userId }: { userId: string }) {
 
         return (
           <Card key={quiz.id} className="h-full hover:shadow-xl hover:scale-[1.02] transition-all duration-300 overflow-hidden elevated">
-            <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-500 relative">
+            <div className="h-32 bg-gradient-to-r from-primary to-accent relative">
               <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                 <FileQuestion className="h-16 w-16 text-white/90" />
               </div>
@@ -70,7 +70,7 @@ async function AvailableQuizzes({ userId }: { userId: string }) {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="flex items-center gap-1">
-                  <FileQuestion className="h-3 w-3 text-blue-600" />
+                  <FileQuestion className="h-3 w-3 text-primary" />
                   <span>{quiz._count.questions} Questions</span>
                 </div>
                 {quiz.timeLimit && (
@@ -80,7 +80,7 @@ async function AvailableQuizzes({ userId }: { userId: string }) {
                   </div>
                 )}
                 <div className="flex items-center gap-1">
-                  <Target className="h-3 w-3 text-green-600" />
+                  <Target className="h-3 w-3 text-success" />
                   <span>{quiz.passScore}% pass</span>
                 </div>
               </div>
@@ -89,7 +89,7 @@ async function AvailableQuizzes({ userId }: { userId: string }) {
                 <div className="space-y-2 p-3 bg-muted rounded-lg">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Last Attempt:</span>
-                    <Badge variant={bestAttempt.passed ? "default" : "destructive"} className={bestAttempt.passed ? "bg-green-600" : ""}>
+                    <Badge variant={bestAttempt.passed ? "default" : "destructive"} className={bestAttempt.passed ? "bg-success" : ""}>
                       {bestAttempt.percentage.toFixed(1)}%
                     </Badge>
                   </div>
@@ -141,7 +141,7 @@ async function CourseEnrollments({ userId }: { userId: string }) {
       {enrollments.map(enrollment => (
         <Link href={`/employee/courses/${enrollment.course.id}`} key={enrollment.id} className="group">
           <Card className="h-full hover:shadow-xl hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden elevated">
-            <div className="h-32 bg-gradient-to-r from-violet-500 to-indigo-500 group-hover:scale-105 transition-transform duration-300" />
+            <div className="h-32 bg-gradient-to-r from-primary to-accent group-hover:scale-105 transition-transform duration-300" />
             <CardHeader>
               <CardTitle className="line-clamp-2">{enrollment.course.title}</CardTitle>
             </CardHeader>
@@ -158,7 +158,7 @@ async function CourseEnrollments({ userId }: { userId: string }) {
               </div>
               <div className="mt-4">
                 {enrollment.progress === 100 ? (
-                  <Badge variant="success" className="bg-green-500 hover:bg-green-600">Completed</Badge>
+                  <Badge variant="success" className="bg-success hover:bg-success/90">Completed</Badge>
                 ) : (
                   <Badge variant="secondary">In Progress</Badge>
                 )}

@@ -88,7 +88,7 @@ export default function DashboardLayout({
                 )}
             >
                 <div className="h-16 flex items-center justify-center border-b border-border px-4">
-                    <div className={cn("font-bold text-xl bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent transition-all", !isSidebarOpen && "lg:scale-0 lg:w-0")}>
+                    <div className={cn("font-bold text-xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent transition-all", !isSidebarOpen && "lg:scale-0 lg:w-0")}>
                         LMS Portal
                     </div>
                     <div className={cn("font-bold text-xl text-primary hidden", !isSidebarOpen && "lg:block")}>
@@ -173,7 +173,7 @@ export default function DashboardLayout({
                         <Link href={role === 'EMPLOYEE' ? '/employee/notifications' : role === 'ADMIN' ? '/admin/notifications' : '#'}>
                             <Button variant="ghost" size="icon" className="relative touch-target" aria-label="Notifications">
                                 <Bell className="h-5 w-5 text-muted-foreground" />
-                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
                             </Button>
                         </Link>
                         <div className="flex items-center gap-3 pl-3 sm:pl-4 border-l border-border">

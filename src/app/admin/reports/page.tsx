@@ -60,16 +60,12 @@ export default async function ReportsPage() {
             description: "Generate detailed Key Performance Indicator reports.",
             icon: TrendingUp,
             href: "/admin/reports/kpi",
-            color: "text-blue-500",
-            bgColor: "bg-blue-500/10"
         },
         {
             title: "Organizational Report",
             description: "View comprehensive organizational structure reports.",
             icon: Users,
             href: "/admin/reports/organizational-report",
-            color: "text-purple-500",
-            bgColor: "bg-purple-500/10"
         }
     ];
 
@@ -181,17 +177,17 @@ export default async function ReportsPage() {
                         <CardContent className="space-y-4">
                             {reportTools.map((tool) => (
                                 <Link key={tool.title} href={tool.href} className="block group">
-                                    <div className="p-4 rounded-lg border bg-card shadow-sm group-hover:shadow-md transition-all flex items-center justify-between">
+                                    <div className="p-5 rounded-lg border bg-card shadow-md group-hover:shadow-lg transition-all flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className={`p-2 rounded-lg bg-primary/10`}>
-                                                <tool.icon className={`h-6 w-6 text-primary`} />
+                                            <div className="flex-shrink-0 p-3 rounded-xl bg-primary/10">
+                                                <tool.icon className="h-7 w-7 text-primary" />
                                             </div>
                                             <div>
-                                                <h3 className="font-semibold">{tool.title}</h3>
+                                                <h3 className="font-bold text-lg">{tool.title}</h3>
                                                 <p className="text-sm text-muted-foreground">{tool.description}</p>
                                             </div>
                                         </div>
-                                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                                     </div>
                                 </Link>
                             ))}

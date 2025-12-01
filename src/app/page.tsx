@@ -10,7 +10,7 @@ export default function Home() {
             <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
                 <div className="container flex h-16 items-center justify-between">
                     <div className="flex items-center gap-2 font-bold text-xl">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center text-white">
+                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground">
                             L
                         </div>
                         <span>LMS Portal</span>
@@ -31,13 +31,13 @@ export default function Home() {
                 <section className="py-20 md:py-32 relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-violet-500/20 via-transparent to-indigo-500/20 -z-10" />
                     <div className="container flex flex-col items-center text-center gap-8">
-                        <div className="inline-flex items-center rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-sm font-medium text-violet-800 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-300">
+                        <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary dark:border-primary/60 dark:bg-primary/20 dark:text-primary-foreground">
                             <Zap className="mr-2 h-3.5 w-3.5" />
                             New: AI-Powered Learning Paths
                         </div>
                         <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl">
                             Elevate Your Team's <br />
-                            <span className="bg-gradient-to-r from-violet-600 to-indigo-600 bg-clip-text text-transparent">
+                            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                                 Potential & Growth
                             </span>
                         </h1>
@@ -72,7 +72,7 @@ export default function Home() {
                         <div className="grid md:grid-cols-3 gap-8">
                             <Card className="bg-background/50 backdrop-blur border-border/50">
                                 <CardHeader>
-                                    <BookOpen className="h-10 w-10 text-violet-600 mb-2" />
+                                    <BookOpen className="h-10 w-10 text-primary mb-2" />
                                     <CardTitle>Diverse Course Library</CardTitle>
                                 </CardHeader>
                                 <CardContent className="text-muted-foreground">
@@ -81,7 +81,7 @@ export default function Home() {
                             </Card>
                             <Card className="bg-background/50 backdrop-blur border-border/50">
                                 <CardHeader>
-                                    <Users className="h-10 w-10 text-indigo-600 mb-2" />
+                                    <Users className="h-10 w-10 text-primary mb-2" />
                                     <CardTitle>Team Management</CardTitle>
                                 </CardHeader>
                                 <CardContent className="text-muted-foreground">
@@ -90,7 +90,7 @@ export default function Home() {
                             </Card>
                             <Card className="bg-background/50 backdrop-blur border-border/50">
                                 <CardHeader>
-                                    <Award className="h-10 w-10 text-pink-600 mb-2" />
+                                    <Award className="h-10 w-10 text-primary mb-2" />
                                     <CardTitle>Certifications</CardTitle>
                                 </CardHeader>
                                 <CardContent className="text-muted-foreground">

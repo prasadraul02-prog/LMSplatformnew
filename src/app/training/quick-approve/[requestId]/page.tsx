@@ -102,7 +102,7 @@ export default function QuickApprovePage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/10 to-accent/10">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
                     <p className="text-gray-600 font-medium">Loading approval requests...</p>
@@ -113,9 +113,9 @@ export default function QuickApprovePage() {
 
     if (requests.length === 0) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100">
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/10 to-accent/10">
                 <div className="text-center bg-white p-12 rounded-2xl shadow-xl">
-                    <CheckCircle className="h-20 w-20 text-green-500 mx-auto mb-4" />
+                    <CheckCircle className="h-20 w-20 text-success mx-auto mb-4" />
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">All Done!</h2>
                     <p className="text-gray-600">No pending approval requests found.</p>
                 </div>
@@ -130,7 +130,7 @@ export default function QuickApprovePage() {
     return (
         <>
             <Toaster position="top-center" richColors />
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 py-8 px-4">
+            <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 to-accent/10 py-8 px-4">
                 <div className="max-w-4xl mx-auto">
                     {/* Header */}
                     <motion.div
@@ -140,7 +140,7 @@ export default function QuickApprovePage() {
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                                     Quick Approval
                                 </h1>
                                 <p className="text-gray-600 mt-1">
@@ -148,7 +148,7 @@ export default function QuickApprovePage() {
                                 </p>
                             </div>
                             <div className="text-right">
-                                <div className="text-3xl font-bold text-indigo-600">{remaining}</div>
+                                <div className="text-3xl font-bold text-primary">{remaining}</div>
                                 <div className="text-sm text-gray-500">Remaining</div>
                             </div>
                         </div>
@@ -156,7 +156,7 @@ export default function QuickApprovePage() {
                         {/* Progress Bar */}
                         <div className="relative h-3 bg-gray-200 rounded-full overflow-hidden">
                             <motion.div
-                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-600 to-purple-600"
+                                className="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-accent"
                                 initial={{ width: 0 }}
                                 animate={{ width: `${progress}%` }}
                                 transition={{ duration: 0.3 }}
@@ -210,7 +210,7 @@ export default function QuickApprovePage() {
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleAction('approve')}
                                     disabled={processing}
-                                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 bg-gradient-to-r from-success to-success/90 text-success-foreground py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     <CheckCircle className="h-6 w-6" />
                                     Approve
@@ -222,7 +222,7 @@ export default function QuickApprovePage() {
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleAction('reject')}
                                     disabled={processing}
-                                    className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 bg-gradient-to-r from-destructive to-destructive/90 text-destructive-foreground py-4 px-6 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
                                     <XCircle className="h-6 w-6" />
                                     Reject
@@ -232,8 +232,8 @@ export default function QuickApprovePage() {
 
                             {processing && (
                                 <div className="mt-4 text-center">
-                                    <div className="inline-flex items-center gap-2 text-indigo-600">
-                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                                    <div className="inline-flex items-center gap-2 text-primary">
+                                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
                                         <span className="font-medium">Processing...</span>
                                     </div>
                                 </div>
@@ -249,7 +249,7 @@ export default function QuickApprovePage() {
                         className="mt-6 bg-white rounded-xl shadow-lg p-4"
                     >
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                            <Keyboard className="h-5 w-5 text-indigo-600" />
+                            <Keyboard className="h-5 w-5 text-primary" />
                             <span className="font-semibold">Keyboard Shortcuts:</span>
                             <kbd className="px-2 py-1 bg-gray-100 rounded">A</kbd>
                             <span>Approve</span>

@@ -31,6 +31,12 @@
     
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
+    --success: 142.1 76.2% 36.3%; /* Green-600 equivalent */
+    --success-foreground: 210 40% 98%; /* White text */
+
+    --warning: 48 96% 50%; /* Yellow-500 equivalent */
+    --warning-foreground: 222.2 84% 4.9%; /* Dark text */
     
     /* #ccdaeb */
     --border: 213 45% 86%;
@@ -65,6 +71,12 @@
     
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
+    --success: 150 80% 40%; /* Slightly brighter green for dark mode */
+    --success-foreground: 210 40% 98%;
+
+    --warning: 40 80% 60%; /* Slightly brighter yellow for dark mode */
+    --warning-foreground: 222.2 84% 4.9%;
     
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
@@ -159,41 +171,7 @@
                 0 0 50px rgba(153, 180, 214, 0.15);
   }
 
-  /* Floating Animation */
-  .float {
-    animation: float 6s ease-in-out infinite;
-  }
 
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-  }
-
-  /* Shimmer Effect for Skeletons */
-  .shimmer {
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0.2) 20%,
-      rgba(255, 255, 255, 0.5) 60%,
-      rgba(255, 255, 255, 0)
-    );
-    animation: shimmer 2s infinite;
-    background-size: 200% 100%;
-  }
-
-  @keyframes shimmer {
-    0% {
-      background-position: -200% 0;
-    }
-    100% {
-      background-position: 200% 0;
-    }
-  }
 
   /* Touch-friendly minimum sizes */
   .touch-target {

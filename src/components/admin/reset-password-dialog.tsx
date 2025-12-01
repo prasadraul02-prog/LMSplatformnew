@@ -115,7 +115,7 @@ export function ResetPasswordDialog({ userId, userName, open, onOpenChange }: Re
                                         {resetting ? 'Setting...' : 'Set Password'}
                                     </Button>
                                     {manualPassword && manualPassword.length < 6 && (
-                                        <p className="text-xs text-red-500">Password must be at least 6 characters</p>
+                                        <p className="text-xs text-destructive">Password must be at least 6 characters</p>
                                     )}
                                 </div>
                             )}
@@ -132,15 +132,15 @@ export function ResetPasswordDialog({ userId, userName, open, onOpenChange }: Re
                                         onClick={copyToClipboard}
                                     >
                                         {copied ? (
-                                            <Check className="h-4 w-4 text-green-600" />
+                                            <Check className="h-4 w-4 text-success" />
                                         ) : (
                                             <Copy className="h-4 w-4" />
                                         )}
                                     </Button>
                                 </div>
                             </div>
-                            <div className="bg-amber-50 dark:bg-amber-950 p-3 rounded-lg">
-                                <p className="text-sm text-amber-800 dark:text-amber-200">
+                            <div className="bg-warning/10 dark:bg-warning/20 p-3 rounded-lg">
+                                <p className="text-sm text-warning dark:text-warning-foreground">
                                     ⚠️ Make sure to copy this password and send it to the user securely.
                                     It won't be shown again.
                                 </p>

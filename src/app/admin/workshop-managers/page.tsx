@@ -150,7 +150,7 @@ export default function WorkshopManagersPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 to-accent/10 p-8">
             <Toaster position="top-right" richColors />
 
             <motion.div
@@ -162,12 +162,12 @@ export default function WorkshopManagersPage() {
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-indigo-100">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                         <div>
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-3">
-                                <UserCog className="text-indigo-600" size={40} />
+                            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent flex items-center gap-3">
+                                <UserCog className="text-primary" size={40} />
                                 Workshop Managers
                             </h1>
                             <p className="text-gray-600 mt-2 flex items-center gap-2">
-                                <Sparkles size={16} className="text-purple-500" />
+                                <Sparkles size={16} className="text-accent" />
                                 Manage Workshop Managers for each location
                             </p>
                         </div>
@@ -175,7 +175,7 @@ export default function WorkshopManagersPage() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => openModal()}
-                            className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-5 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg font-semibold"
+                            className="flex items-center gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground px-5 py-3 rounded-xl hover:from-primary/90 hover:to-accent/90 transition-all shadow-lg font-semibold"
                         >
                             <Plus size={18} />
                             Add New
@@ -188,7 +188,7 @@ export default function WorkshopManagersPage() {
                             animate={{ opacity: 1 }}
                             className="text-center py-16"
                         >
-                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
                             <p className="text-gray-600 text-lg">Loading workshop managers...</p>
                         </motion.div>
                     ) : managers.length === 0 ? (
@@ -212,7 +212,7 @@ export default function WorkshopManagersPage() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: idx * 0.1 }}
                                         className={`relative border-2 rounded-xl p-6 transition-all hover:shadow-xl ${manager.isActive
-                                                ? 'bg-gradient-to-br from-white to-indigo-50 border-indigo-200 shadow-lg'
+                                                ? 'bg-gradient-to-br from-background to-primary/10 border-primary/20 shadow-lg'
                                                 : 'bg-gradient-to-br from-gray-50 to-gray-100 border-gray-300 opacity-75'
                                             }`}
                                     >
