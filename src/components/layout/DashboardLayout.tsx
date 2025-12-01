@@ -46,6 +46,7 @@ export default function DashboardLayout({
             { href: "/admin/quizzes", label: "Quizzes", icon: FileQuestion },
             { href: "/admin/reports", label: "Reports", icon: FileText },
             { href: "/admin/automation", label: "Automation", icon: Settings },
+            { href: "/admin/user-manual", label: "User Manual", icon: BookOpen },
         ],
         TRAINER: [
             { href: "/trainer", label: "Dashboard", icon: LayoutDashboard },

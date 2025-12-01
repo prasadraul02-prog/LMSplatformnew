@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { StatsCardSkeleton } from "@/components/ui/skeleton";
 
+
 export const dynamic = 'force-dynamic';
 
 async function DashboardStats() {
@@ -125,24 +126,7 @@ export default async function AdminDashboard() {
                 </div>
             </div>
 
-            {/* Organizational Management Section */}
-            <div className="mt-12">
-                <h2 className="text-2xl font-bold tracking-tight mb-6">Organizational Management</h2>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                    <Link href="/admin/organizational-status" className="group">
-                        <Card className="hover:shadow-lg hover:scale-[1.02] transition-all duration-300 cursor-pointer elevated touch-target h-full border-l-4 border-l-blue-600">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Employee Status</CardTitle>
-                                <Users className="h-4 w-4 text-blue-600 group-hover:scale-110 transition-transform" />
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-lg font-semibold text-blue-600">Organizational Status</div>
-                                <p className="text-xs text-muted-foreground mt-1">Manage Master HR Database & Comparisons</p>
-                            </CardContent>
-                        </Card>
-                    </Link>
-                </div>
-            </div>
+            {/* User Manual Section removed - moved to dedicated page */}
         </div>
     );
 }

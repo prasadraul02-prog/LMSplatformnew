@@ -57,6 +57,11 @@ const navItems = [
         href: '/admin/automation',
         icon: Settings,
     },
+    {
+        title: 'User Manual',
+        href: '/admin/user-manual',
+        icon: BookOpen,
+    },
 ];
 
 export function HorizontalNav() {
