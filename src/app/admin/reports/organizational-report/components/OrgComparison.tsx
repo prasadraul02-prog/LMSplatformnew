@@ -135,9 +135,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                                 {/* New Employees */}
                                 {comparisonResult.newEmployees.length > 0 && (
-                                    <Card className="border-l-4 border-l-green-500">
+                                    <Card className="border-l-4 border-l-success">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center text-green-700">
+                                            <CardTitle className="flex items-center text-success">
                                                 <UserPlus className="mr-2 h-5 w-5" />
                                                 New Employees Found ({comparisonResult.newEmployees.length})
                                             </CardTitle>
@@ -180,9 +180,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
                                 {/* Resigned Employees */}
                                 {comparisonResult.resignedEmployees.length > 0 && (
-                                    <Card className="border-l-4 border-l-red-500">
+                                    <Card className="border-l-4 border-l-destructive">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center text-red-700">
+                                            <CardTitle className="flex items-center text-destructive">
                                                 <UserMinus className="mr-2 h-5 w-5" />
                                                 Potential Resignations ({comparisonResult.resignedEmployees.length})
                                             </CardTitle>
@@ -220,9 +220,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
                                 {/* Status Changes */}
                                 {comparisonResult.statusChanges.length > 0 && (
-                                    <Card className="border-l-4 border-l-blue-500">
+                                    <Card className="border-l-4 border-l-primary">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center text-blue-700">
+                                            <CardTitle className="flex items-center text-primary">
                                                 <ArrowRight className="mr-2 h-5 w-5" />
                                                 Status Changes ({comparisonResult.statusChanges.length})
                                             </CardTitle>
@@ -244,8 +244,8 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         {comparisonResult.statusChanges.map((emp: any, i: number) => (
                                                             <tr key={i} className="border-t">
                                                                 <td className="p-2">{emp.name}</td>
-                                                                <td className="p-2 text-red-500">{emp.oldStatus}</td>
-                                                                <td className="p-2 text-green-500">{emp.newStatus}</td>
+                                                                <td className="p-2 text-destructive">{emp.oldStatus}</td>
+                                                                <td className="p-2 text-success">{emp.newStatus}</td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
@@ -265,9 +265,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
                                 {/* Transfers */}
                                 {comparisonResult.transfers.length > 0 && (
-                                    <Card className="border-l-4 border-l-purple-500">
+                                    <Card className="border-l-4 border-l-accent">
                                         <CardHeader>
-                                            <CardTitle className="flex items-center text-purple-700">
+                                            <CardTitle className="flex items-center text-accent">
                                                 <ArrowRight className="mr-2 h-5 w-5" />
                                                 Inter-Organization Transfers ({comparisonResult.transfers.length})
                                             </CardTitle>

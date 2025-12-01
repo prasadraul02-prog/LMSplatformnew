@@ -57,7 +57,7 @@ export default function CreateUserPage() {
                                             onChange={(e) => setName(e.target.value)}
                                         />
                                     </div>
-                                    {state?.error?.name && <p className="text-sm text-red-500">{state.error.name}</p>}
+                                    {state?.error?.name && <p className="text-sm text-destructive">{state.error.name}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -66,8 +66,8 @@ export default function CreateUserPage() {
                                         <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input id="email" name="email" type="email" placeholder="john@example.com" className="pl-9" required />
                                     </div>
-                                    {state?.error?.email && <p className="text-sm text-red-500">{state.error.email}</p>}
-                                    {state?.message && !state.success && <p className="text-sm text-red-500">{state.message}</p>}
+                                    {state?.error?.email && <p className="text-sm text-destructive">{state.error.email}</p>}
+                                    {state?.message && !state.success && <p className="text-sm text-destructive">{state.message}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -76,7 +76,7 @@ export default function CreateUserPage() {
                                         <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                                         <Input id="password" name="password" type="password" placeholder="••••••••" className="pl-9" required minLength={6} />
                                     </div>
-                                    {state?.error?.password && <p className="text-sm text-red-500">{state.error.password}</p>}
+                                    {state?.error?.password && <p className="text-sm text-destructive">{state.error.password}</p>}
                                 </div>
 
                                 <div className="space-y-2">
@@ -104,7 +104,7 @@ export default function CreateUserPage() {
                         </Button>
 
                         {state?.success && (
-                            <div className="p-4 rounded-md bg-green-50 text-green-700 border border-green-200 flex items-center gap-2">
+                            <div className="p-4 rounded-md bg-success/10 text-success border border-success/20 flex items-center gap-2">
                                 <Check className="h-4 w-4" />
                                 {state.message}
                             </div>

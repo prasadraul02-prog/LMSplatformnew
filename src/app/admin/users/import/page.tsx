@@ -84,7 +84,7 @@ export default function ImportUsersPage() {
                         </Button>
 
                         {state?.success && (
-                            <div className="p-4 rounded-md bg-green-500/10 text-green-600 flex items-start gap-3">
+                            <div className="p-4 rounded-md bg-success/10 text-success flex items-start gap-3">
                                 <CheckCircle2 className="h-5 w-5 mt-0.5" />
                                 <div className="text-sm">{state.message}</div>
                             </div>

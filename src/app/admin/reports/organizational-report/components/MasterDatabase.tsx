@@ -123,9 +123,9 @@ export default function MasterDatabase({ data }: { data: any[] }) {
                                         <td className="p-3 font-medium">{emp.name}</td>
                                         <td className="p-3">{emp.organizationName}</td>
                                         <td className="p-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-green-100 text-green-700' :
-                                                    emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-yellow-100 text-yellow-700' :
-                                                        'bg-gray-100 text-gray-700'
+                                            <span className={`px-2 py-1 rounded-full text-xs ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-success/10 text-success' :
+                                                    emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-warning/10 text-warning' :
+                                                        'bg-muted/50 text-muted-foreground'
                                                 }`}>
                                                 {emp.employmentStatus}
                                             </span>

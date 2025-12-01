@@ -219,8 +219,8 @@ export default function WorkshopManagersPage() {
                                         {manager.isActive && (
                                             <div className="absolute top-3 right-3">
                                                 <span className="flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success/75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-success"></span>
                                                 </span>
                                             </div>
                                         )}
@@ -230,11 +230,11 @@ export default function WorkshopManagersPage() {
                                                 <h3 className="font-bold text-xl text-gray-800 mb-2">{manager.name}</h3>
                                                 <div className="space-y-2">
                                                     <div className="flex items-center gap-2 text-gray-600 text-sm bg-white/50 px-3 py-2 rounded-lg">
-                                                        <Mail size={14} className="text-indigo-600" />
+                                                        <Mail size={14} className="text-primary" />
                                                         {manager.email}
                                                     </div>
                                                     <div className="flex items-center gap-2 text-gray-600 text-sm bg-white/50 px-3 py-2 rounded-lg">
-                                                        <MapPin size={14} className="text-purple-600" />
+                                                        <MapPin size={14} className="text-accent" />
                                                         {manager.location}
                                                     </div>
                                                 </div>
@@ -246,9 +246,9 @@ export default function WorkshopManagersPage() {
                                                 className="ml-3 p-2 rounded-lg hover:bg-white/50 transition-colors"
                                             >
                                                 {manager.isActive ? (
-                                                    <CheckCircle size={24} className="text-green-600" />
+                                                    <CheckCircle size={24} className="text-success" />
                                                 ) : (
-                                                    <XCircle size={24} className="text-red-400" />
+                                                    <XCircle size={24} className="text-destructive" />
                                                 )}
                                             </motion.button>
                                         </div>
@@ -258,7 +258,7 @@ export default function WorkshopManagersPage() {
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
                                                 onClick={() => openModal(manager)}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:from-blue-600 hover:to-blue-700 text-sm font-semibold shadow-md"
+                                                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground px-4 py-2 rounded-lg hover:from-primary/80 hover:to-primary text-sm font-semibold shadow-md"
                                             >
                                                 <Edit2 size={14} />
                                                 Edit
@@ -271,7 +271,7 @@ export default function WorkshopManagersPage() {
                                                         handleDelete(manager.id, manager.name);
                                                     }
                                                 }}
-                                                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg hover:from-red-600 hover:to-red-700 text-sm font-semibold shadow-md"
+                                                className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-destructive to-destructive/90 text-destructive-foreground px-4 py-2 rounded-lg hover:from-destructive/80 hover:to-destructive text-sm font-semibold shadow-md"
                                             >
                                                 <Trash2 size={14} />
                                                 Delete
@@ -302,7 +302,7 @@ export default function WorkshopManagersPage() {
                             onClick={(e) => e.stopPropagation()}
                             className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl border border-gray-200"
                         >
-                            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                            <h2 className="text-2xl font-bold mb-6 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                                 {editingManager ? 'Edit Workshop Manager' : 'Add Workshop Manager'}
                             </h2>
                             <form onSubmit={handleSubmit}>
@@ -314,7 +314,7 @@ export default function WorkshopManagersPage() {
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         required
                                         placeholder="Enter full name"
-                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                     />
                                 </div>
                                 <div className="mb-5">
@@ -325,7 +325,7 @@ export default function WorkshopManagersPage() {
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                         required
                                         placeholder="manager@company.com"
-                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                     />
                                 </div>
                                 <div className="mb-6">
@@ -336,7 +336,7 @@ export default function WorkshopManagersPage() {
                                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                                         required
                                         placeholder="Mumbai, Delhi, etc."
-                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                        className="w-full border-2 border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                                     />
                                 </div>
                                 <div className="flex gap-3">
@@ -344,7 +344,7 @@ export default function WorkshopManagersPage() {
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
                                         type="submit"
-                                        className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 shadow-lg"
+                                        className="flex-1 bg-gradient-to-r from-primary to-accent text-primary-foreground py-3 rounded-xl font-semibold hover:from-primary/90 hover:to-accent/90 shadow-lg"
                                     >
                                         {editingManager ? 'Update' : 'Create'}
                                     </motion.button>

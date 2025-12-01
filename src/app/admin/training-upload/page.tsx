@@ -126,7 +126,7 @@ export default function ExcelUploadPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 p-8">
+        <div className="min-h-screen bg-gradient-to-br from-background via-primary/10 to-accent/10 p-8">
             <Toaster position="top-right" richColors />
 
             <motion.div
@@ -141,12 +141,12 @@ export default function ExcelUploadPage() {
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.2 }}
                     >
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 flex items-center gap-3">
-                            <FileSpreadsheet className="text-indigo-600" size={40} />
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2 flex items-center gap-3">
+                            <FileSpreadsheet className="text-primary" size={40} />
                             Employee Training Management
                         </h1>
                         <p className="text-gray-600 mb-8 flex items-center gap-2">
-                            <Sparkles size={16} className="text-purple-500" />
+                            <Sparkles size={16} className="text-accent" />
                             Upload Excel file to identify untrained employees
                         </p>
                     </motion.div>
@@ -160,10 +160,10 @@ export default function ExcelUploadPage() {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         className={`relative border-2 border-dashed rounded-2xl p-10 mb-6 text-center transition-all duration-300 ${isDragging
-                                ? 'border-indigo-500 bg-indigo-50 scale-105 shadow-lg'
+                                ? 'border-primary bg-primary/10 scale-105 shadow-lg'
                                 : file
-                                    ? 'border-green-400 bg-green-50'
-                                    : 'border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-indigo-400 hover:shadow-md'
+                                    ? 'border-success bg-success/10'
+                                    : 'border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-primary/50 hover:shadow-md'
                             }`}
                     >
                         <AnimatePresence mode="wait">
@@ -174,9 +174,9 @@ export default function ExcelUploadPage() {
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                 >
-                                    <Upload className="mx-auto text-indigo-400 mb-4" size={56} />
+                                    <Upload className="mx-auto text-primary/50 mb-4" size={56} />
                                     <label htmlFor="file-input" className="cursor-pointer">
-                                        <span className="text-xl font-semibold text-indigo-600 hover:text-indigo-700 transition-colors">
+                                        <span className="text-xl font-semibold text-primary hover:text-primary/90 transition-colors">
                                             Choose an Excel file
                                         </span>
                                         <p className="text-gray-500 mt-2">or drag and drop here</p>
@@ -198,7 +198,7 @@ export default function ExcelUploadPage() {
                                     exit={{ opacity: 0, scale: 0.9 }}
                                     className="flex items-center justify-center gap-4"
                                 >
-                                    <CheckCircle className="text-green-600" size={40} />
+                                    <CheckCircle className="text-success" size={40} />
                                     <div className="text-left">
                                         <p className="font-bold text-lg text-gray-800">{file.name}</p>
                                         <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
@@ -208,7 +208,7 @@ export default function ExcelUploadPage() {
                                             setFile(null);
                                             setResult(null);
                                         }}
-                                        className="ml-4 text-red-500 hover:text-red-700 font-medium"
+                                        className="ml-4 text-destructive hover:text-destructive/90 font-medium"
                                     >
                                         Remove
                                     </button>
@@ -222,7 +222,7 @@ export default function ExcelUploadPage() {
                         whileTap={{ scale: 0.98 }}
                         onClick={handleUpload}
                         disabled={!file || uploading}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:from-indigo-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none"
+                        className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:from-primary/90 hover:to-accent/90 disabled:from-muted/50 disabled:to-muted/50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none"
                     >
                         {uploading ? (
                             <>
@@ -248,39 +248,39 @@ export default function ExcelUploadPage() {
                                 className="mt-8"
                             >
                                 {result.success ? (
-                                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-8 shadow-lg">
+                                    <div className="bg-gradient-to-br from-success/10 to-success/5 border-2 border-success/20 rounded-2xl p-8 shadow-lg">
                                         <div className="flex items-start gap-4">
                                             <motion.div
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
                                                 transition={{ delay: 0.2, type: 'spring' }}
                                             >
-                                                <CheckCircle className="text-green-600 flex-shrink-0" size={32} />
+                                                <CheckCircle className="text-success flex-shrink-0" size={32} />
                                             </motion.div>
                                             <div className="flex-1">
-                                                <h3 className="font-bold text-green-800 text-2xl mb-4 flex items-center gap-2">
+                                                <h3 className="font-bold text-success text-2xl mb-4 flex items-center gap-2">
                                                     Upload Successful
-                                                    <Sparkles size={20} className="text-green-600" />
+                                                    <Sparkles size={20} className="text-success" />
                                                 </h3>
 
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                                     {[
-                                                        { label: 'Total Processed', value: result.totalProcessed, color: 'blue' },
-                                                        { label: 'Successful', value: result.successCount, color: 'green' },
-                                                        { label: 'Untrained', value: result.untrainedCount, color: 'orange' },
-                                                        { label: 'Failed', value: result.failedCount, color: 'red' },
+                                                        { label: 'Total Processed', value: result.totalProcessed, borderColor: 'border-primary', textColor: 'text-primary', textBoldColor: 'text-primary-foreground' },
+                                                        { label: 'Successful', value: result.successCount, borderColor: 'border-success', textColor: 'text-success', textBoldColor: 'text-success-foreground' },
+                                                        { label: 'Untrained', value: result.untrainedCount, borderColor: 'border-warning', textColor: 'text-warning', textBoldColor: 'text-warning-foreground' },
+                                                        { label: 'Failed', value: result.failedCount, borderColor: 'border-destructive', textColor: 'text-destructive', textBoldColor: 'text-destructive-foreground' },
                                                     ].map((stat, idx) => (
                                                         <motion.div
                                                             key={stat.label}
                                                             initial={{ opacity: 0, y: 10 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             transition={{ delay: 0.3 + idx * 0.1 }}
-                                                            className={`bg-white rounded-xl p-4 shadow-md border-l-4 border-${stat.color}-500`}
+                                                            className={`bg-white rounded-xl p-4 shadow-md border-l-4 ${stat.borderColor}`}
                                                         >
-                                                            <p className={`text-sm text-${stat.color}-700 font-medium mb-1`}>
+                                                            <p className={`text-sm ${stat.textColor} font-medium mb-1`}>
                                                                 {stat.label}
                                                             </p>
-                                                            <p className={`text-3xl font-bold text-${stat.color}-900`}>
+                                                            <p className={`text-3xl font-bold ${stat.textBoldColor}`}>
                                                                 {stat.value}
                                                             </p>
                                                         </motion.div>
@@ -293,7 +293,7 @@ export default function ExcelUploadPage() {
                                                         animate={{ opacity: 1 }}
                                                         transition={{ delay: 0.6 }}
                                                     >
-                                                        <h4 className="font-bold text-green-800 mb-3 text-lg flex items-center gap-2">
+                                                        <h4 className="font-bold text-success mb-3 text-lg flex items-center gap-2">
                                                             <TrendingUp size={20} />
                                                             Untrained by Location
                                                         </h4>
@@ -307,10 +307,10 @@ export default function ExcelUploadPage() {
                                                                     className="flex justify-between items-center py-3 border-b last:border-b-0"
                                                                 >
                                                                     <span className="font-semibold text-gray-800 flex items-center gap-2">
-                                                                        <span className="w-2 h-2 bg-indigo-600 rounded-full"></span>
+                                                                        <span className="w-2 h-2 bg-primary rounded-full"></span>
                                                                         {item.location}
                                                                     </span>
-                                                                    <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-bold shadow-md">
+                                                                    <span className="bg-gradient-to-r from-warning to-destructive text-primary-foreground px-4 py-2 rounded-full font-bold shadow-md">
                                                                         {item.count} untrained
                                                                     </span>
                                                                 </motion.div>
@@ -321,7 +321,7 @@ export default function ExcelUploadPage() {
                                                             whileHover={{ scale: 1.02 }}
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={() => handleSendRequests()}
-                                                            className="w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 text-white py-4 rounded-xl font-bold text-lg hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 transition-all shadow-xl hover:shadow-2xl"
+                                                            className="w-full bg-gradient-to-r from-accent via-primary to-primary/90 text-primary-foreground py-4 rounded-xl font-bold text-lg hover:from-accent/90 hover:via-primary/90 hover:to-primary transition-all shadow-xl hover:shadow-2xl"
                                                         >
                                                             📧 Send Approval Requests to Workshop Managers
                                                         </motion.button>
@@ -334,13 +334,13 @@ export default function ExcelUploadPage() {
                                                         animate={{ opacity: 1 }}
                                                         className="mt-4"
                                                     >
-                                                        <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                                                        <h4 className="font-semibold text-destructive mb-2 flex items-center gap-2">
                                                             <AlertCircle size={18} />
                                                             Errors Found
                                                         </h4>
-                                                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-h-40 overflow-y-auto">
+                                                        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 max-h-40 overflow-y-auto">
                                                             {result.errors.map((err, idx) => (
-                                                                <p key={idx} className="text-sm text-red-700 mb-1">
+                                                                <p key={idx} className="text-sm text-destructive mb-1">
                                                                     • {err}
                                                                 </p>
                                                             ))}
@@ -354,13 +354,13 @@ export default function ExcelUploadPage() {
                                     <motion.div
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl p-8 shadow-lg"
+                                        className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-2 border-destructive/20 rounded-2xl p-8 shadow-lg"
                                     >
                                         <div className="flex items-start gap-4">
-                                            <AlertCircle className="text-red-600 flex-shrink-0" size={32} />
+                                            <AlertCircle className="text-destructive flex-shrink-0" size={32} />
                                             <div>
-                                                <h3 className="font-bold text-red-800 text-2xl mb-2">Upload Failed</h3>
-                                                <p className="text-red-700 text-lg">{result.error || 'An unknown error occurred'}</p>
+                                                <h3 className="font-bold text-destructive text-2xl mb-2">Upload Failed</h3>
+                                                <p className="text-destructive text-lg">{result.error || 'An unknown error occurred'}</p>
                                             </div>
                                         </div>
                                     </motion.div>

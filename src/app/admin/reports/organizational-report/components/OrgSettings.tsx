@@ -95,11 +95,10 @@ export default function OrgSettings({ organizations }: OrgSettingsProps) {
                                         onChange={(e) => setEditName(e.target.value)}
                                         autoFocus
                                     />
-                                    <Button size="sm" variant="ghost" onClick={() => handleEditSave(org)}>
-                                        <Save className="h-4 w-4 text-green-600" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
-                                        <X className="h-4 w-4 text-red-600" />
+                                                                         <Button size="sm" variant="ghost" onClick={() => handleEditSave(org)}>
+                                                                            <Save className="h-4 w-4 text-success" />
+                                                                        </Button>                                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                                        <X className="h-4 w-4 text-destructive" />
                                     </Button>
                                 </div>
                             ) : (
@@ -114,7 +113,7 @@ export default function OrgSettings({ organizations }: OrgSettingsProps) {
                                     <Edit2 className="h-4 w-4" />
                                 </Button>
                                 <Button size="sm" variant="ghost" onClick={() => handleDelete(org.id)} disabled={isSubmitting}>
-                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                    <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                             </div>
                         </div>
