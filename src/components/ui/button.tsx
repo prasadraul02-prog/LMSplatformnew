@@ -12,6 +12,7 @@ export interface ButtonProps
     variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "gradient"
     size?: "default" | "sm" | "lg" | "icon"
     isLoading?: boolean
+    children?: React.ReactNode
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
