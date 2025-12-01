@@ -378,30 +378,30 @@ export default function KPIReportPage() {
     // --- Render ---
 
     return (
-        <div className="min-h-screen bg-[#F7F9FB] dark:bg-gray-900 p-4 md:p-8 font-sans text-gray-800 dark:text-gray-100 print:bg-white print:p-0">
+        <div className="min-h-screen bg-background p-6 md:p-10 font-sans text-foreground print:bg-white print:p-0">
 
             {/* Header */}
             <div className="max-w-[1600px] mx-auto mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white flex items-center gap-3">
+                    <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
                         <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20">
                             <FileSpreadsheet className="w-6 h-6 text-white" />
                         </div>
                         KPI Report Dashboard
                     </h1>
-                    <p className="text-gray-500 mt-1 ml-1">
+                    <p className="text-muted-foreground mt-2 ml-1">
                         {stats ? `Analysis generated on ${new Date().toLocaleTimeString()}` : "Upload training data to begin analysis"}
                     </p>
                 </div>
 
                 {stats && (
                     <div className="flex gap-3">
-                        <button onClick={() => window.print()} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm font-medium text-sm">
+                        <Button onClick={() => window.print()} variant="outline" className="flex items-center gap-2 font-medium text-sm">
                             <Printer className="w-4 h-4" /> Print PDF
-                        </button>
-                        <button onClick={exportExcel} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 font-medium text-sm">
+                        </Button>
+                        <Button onClick={exportExcel} variant="default" className="flex items-center gap-2 font-medium text-sm bg-green-600 hover:bg-green-700">
                             <Download className="w-4 h-4" /> Export Excel
-                        </button>
+                        </Button>
                     </div>
                 )}
             </div>
@@ -430,13 +430,13 @@ export default function KPIReportPage() {
                     </label>
 
                     <div className="mt-6 flex justify-center">
-                        <button
+                        <Button
                             onClick={processFile}
                             disabled={!file || isProcessing}
-                            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2"
+                            className="px-8 py-3 rounded-xl font-semibold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2"
                         >
                             {isProcessing ? <Loader2 className="animate-spin" /> : "Generate Report"}
-                        </button>
+                        </Button>
                     </div>
                 </motion.div>
             )}
@@ -548,21 +548,21 @@ export default function KPIReportPage() {
                                 { label: "Expert Avg", val: overallStats.avgExpertPercent, color: "purple", target: 40 },
                                 { label: "Untrained", val: overallStats.totalUntrained, color: "red", target: 0, isCount: true },
                             ].map((item, i) => (
-                                <div key={i} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col justify-between">
-                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{item.label}</span>
+                                <div key={i} className="bg-card p-4 rounded-2xl shadow-sm hover:shadow-md group border border-border flex flex-col justify-between">
+                                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{item.label}</span>
                                     <div className="flex items-end gap-2 mt-2">
-                                        <span className={`text-3xl font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
+                                        <span className={`text-3xl font-bold text-primary`}>
                                             {item.val}{item.isCount ? "" : "%"}
                                         </span>
                                         {!item.isCount && (
-                                            <span className="text-xs text-gray-400 mb-1">/ {item.target}%</span>
+                                            <span className="text-xs text-muted-foreground mb-1">/ {item.target}%</span>
                                         )}
                                     </div>
                                     {!item.isCount && (
-                                        <div className="w-full h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full mt-3 overflow-hidden">
+                                        <div className="w-full h-1.5 bg-secondary rounded-full mt-3 overflow-hidden">
                                             <motion.div
                                                 initial={{ width: 0 }} animate={{ width: `${item.val}%` }}
-                                                className={`h-full bg-${item.color}-500 rounded-full`}
+                                                className={`h-full bg-primary rounded-full`}
                                             />
                                         </div>
                                     )}
@@ -571,24 +571,24 @@ export default function KPIReportPage() {
                         </div>
 
                         {/* Main Table */}
-                        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col max-h-[700px] print:max-h-none print:shadow-none print:border-none">
+                        <div className="bg-card rounded-3xl shadow-sm border border-border overflow-hidden flex flex-col max-h-[700px] print:max-h-none print:shadow-none print:border-none">
                             <div className="overflow-auto flex-1 relative">
                                 <table className="w-full text-sm text-left border-collapse">
-                                    <thead className="text-xs text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-900/90 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10 backdrop-blur-md shadow-sm print:static">
+                                    <thead className="text-xs text-muted-foreground uppercase bg-background border-b border-border sticky top-0 z-10 print:static">
                                         <tr>
                                             <th className="px-4 py-4 font-bold w-16">Reg</th>
                                             <th className="px-4 py-4 font-bold">Location</th>
                                             <th className="px-4 py-4 text-center font-bold">Total</th>
-                                            <th className="px-4 py-4 text-center font-bold text-blue-600">Basic</th>
-                                            <th className="px-4 py-4 text-center font-bold text-blue-600">%</th>
-                                            <th className="px-4 py-4 text-center font-bold text-green-600">Adv</th>
-                                            <th className="px-4 py-4 text-center font-bold text-green-600">%</th>
-                                            <th className="px-4 py-4 text-center font-bold text-purple-600">Exp</th>
-                                            <th className="px-4 py-4 text-center font-bold text-purple-600">%</th>
-                                            <th className="px-4 py-4 text-center font-bold text-red-600">Untrained</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">Basic</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">Adv</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">Exp</th>
+                                            <th className="px-4 py-4 text-center font-bold text-primary">%</th>
+                                            <th className="px-4 py-4 text-center font-bold text-destructive">Untrained</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                    <tbody className="divide-y divide-border">
                                         {filteredStats.map((stat, idx) => {
                                             const isFail = stat.failures.length > 0;
                                             return (
@@ -597,35 +597,35 @@ export default function KPIReportPage() {
                                                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                                                     className={`
                             group transition-colors
-                            ${isFail ? 'bg-[#FFECEC] dark:bg-red-900/10 hover:bg-[#FFE0E0]' : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50'}
+                            ${isFail ? 'bg-destructive/5 dark:bg-destructive/10 hover:bg-destructive/10' : 'bg-card hover:bg-accent/50'}
                           `}
                                                 >
-                                                    <td className="px-4 py-3 font-medium text-gray-500">{stat.region}</td>
-                                                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
+                                                    <td className="px-4 py-3 font-medium text-muted-foreground">{stat.region}</td>
+                                                    <td className="px-4 py-3 font-semibold text-foreground">
                                                         {stat.location}
                                                     </td>
-                                                    <td className="px-4 py-3 text-center text-gray-600 dark:text-gray-300">{stat.totalEmployees}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">{stat.totalEmployees}</td>
 
                                                     {/* Basic */}
-                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.basicTrained}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">{stat.basicTrained}</td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className={`font-bold ${stat.basicPercent < THRESHOLDS.BASIC ? 'text-[#FF4C4C]' : 'text-blue-600'}`}>
+                                                        <span className={`font-bold ${stat.basicPercent < THRESHOLDS.BASIC ? 'text-destructive' : 'text-primary'}`}>
                                                             {stat.basicPercent}%
                                                         </span>
                                                     </td>
 
                                                     {/* Advance */}
-                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.advanceTrained}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">{stat.advanceTrained}</td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className={`font-bold ${stat.advancePercent < THRESHOLDS.ADVANCE ? 'text-[#FF4C4C]' : 'text-green-600'}`}>
+                                                        <span className={`font-bold ${stat.advancePercent < THRESHOLDS.ADVANCE ? 'text-destructive' : 'text-primary'}`}>
                                                             {stat.advancePercent}%
                                                         </span>
                                                     </td>
 
                                                     {/* Expert */}
-                                                    <td className="px-4 py-3 text-center text-gray-600">{stat.expertTrained}</td>
+                                                    <td className="px-4 py-3 text-center text-muted-foreground">{stat.expertTrained}</td>
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className={`font-bold ${stat.expertPercent < THRESHOLDS.EXPERT ? 'text-[#FF4C4C]' : 'text-purple-600'}`}>
+                                                        <span className={`font-bold ${stat.expertPercent < THRESHOLDS.EXPERT ? 'text-destructive' : 'text-primary'}`}>
                                                             {stat.expertPercent}%
                                                         </span>
                                                     </td>
@@ -635,12 +635,12 @@ export default function KPIReportPage() {
                                                         {stat.untrained > 0 ? (
                                                             <button
                                                                 onClick={() => setUntrainedModalData({ location: stat.location, employees: stat.untrainedList })}
-                                                                className="inline-flex items-center justify-center px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-bold hover:bg-red-200 transition-colors"
+                                                                className="inline-flex items-center justify-center px-2 py-1 bg-destructive/10 text-destructive rounded text-xs font-bold hover:bg-destructive/20 transition-colors"
                                                             >
                                                                 {stat.untrained} <UserX className="w-3 h-3 ml-1" />
                                                             </button>
                                                         ) : (
-                                                            <span className="text-gray-300">-</span>
+                                                            <span className="text-muted-foreground">-</span>
                                                         )}
                                                     </td>
                                                 </motion.tr>
@@ -648,16 +648,16 @@ export default function KPIReportPage() {
                                         })}
                                     </tbody>
                                     <tfoot className="sticky bottom-0 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] print:table-row-group">
-                                        <tr className="bg-blue-50 dark:bg-blue-900/40 border-t-2 border-blue-200 dark:border-blue-800">
-                                            <td colSpan={2} className="px-4 py-4 font-bold text-right uppercase text-gray-700 dark:text-gray-200">Grand Total</td>
-                                            <td className="px-4 py-4 text-center font-bold text-lg">{overallStats.totalEmployees}</td>
-                                            <td className="px-4 py-4 text-center font-bold text-blue-700">{overallStats.totalBasic}</td>
-                                            <td className="px-4 py-4 text-center font-bold bg-blue-100/50">{overallStats.avgBasicPercent}%</td>
-                                            <td className="px-4 py-4 text-center font-bold text-green-700">{overallStats.totalAdvance}</td>
-                                            <td className="px-4 py-4 text-center font-bold bg-green-100/50">{overallStats.avgAdvancePercent}%</td>
-                                            <td className="px-4 py-4 text-center font-bold text-purple-700">{overallStats.totalExpert}</td>
-                                            <td className="px-4 py-4 text-center font-bold bg-purple-100/50">{overallStats.avgExpertPercent}%</td>
-                                            <td className="px-4 py-4 text-center font-bold text-red-600">{overallStats.totalUntrained}</td>
+                                        <tr className="bg-secondary/50 border-t-2 border-border">
+                                            <td colSpan={2} className="px-4 py-4 font-bold text-right uppercase text-foreground">Grand Total</td>
+                                            <td className="px-4 py-4 text-center font-bold text-lg text-foreground">{overallStats.totalEmployees}</td>
+                                            <td className="px-4 py-4 text-center font-bold text-primary">{overallStats.totalBasic}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-primary/10 text-primary">{overallStats.avgBasicPercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-primary">{overallStats.totalAdvance}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-primary/10 text-primary">{overallStats.avgAdvancePercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-primary">{overallStats.totalExpert}</td>
+                                            <td className="px-4 py-4 text-center font-bold bg-primary/10 text-primary">{overallStats.avgExpertPercent}%</td>
+                                            <td className="px-4 py-4 text-center font-bold text-destructive">{overallStats.totalUntrained}</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -687,7 +687,7 @@ export default function KPIReportPage() {
 
                             <div className="flex-1 overflow-auto p-6">
                                 <table className="w-full text-sm text-left">
-                                    <thead className="text-xs text-gray-500 uppercase bg-gray-50 dark:bg-gray-800 sticky top-0">
+                                    <thead className="text-xs text-muted-foreground uppercase bg-background sticky top-0">
                                         <tr>
                                             <th className="px-4 py-3 rounded-l-lg">ID</th>
                                             <th className="px-4 py-3">Name</th>
@@ -697,41 +697,43 @@ export default function KPIReportPage() {
                                             <th className="px-4 py-3 rounded-r-lg">Sub Category</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tbody className="divide-y divide-border">
                                         {untrainedModalData.employees.map((emp, i) => (
-                                            <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                                <td className="px-4 py-3 font-mono text-xs text-gray-500">{emp.id}</td>
-                                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{emp.name}</td>
-                                                <td className="px-4 py-3 text-gray-600">{emp.designation}</td>
+                                            <tr key={i} className="hover:bg-accent/50">
+                                                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{emp.id}</td>
+                                                <td className="px-4 py-3 font-medium text-foreground">{emp.name}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{emp.designation}</td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-gray-600">{emp.mobile}</span>
+                                                        <span className="text-muted-foreground">{emp.mobile}</span>
                                                         {emp.mobile !== "-" && (
-                                                            <a href={`tel:${emp.mobile}`} className="p-1 text-blue-600 hover:bg-blue-50 rounded">
+                                                            <a href={`tel:${emp.mobile}`} className="p-1 text-primary hover:bg-accent rounded">
                                                                 <Phone className="w-3 h-3" />
                                                             </a>
                                                         )}
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-3 text-gray-600">{emp.doj}</td>
-                                                <td className="px-4 py-3 text-gray-600">{emp.subCategory}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{emp.doj}</td>
+                                                <td className="px-4 py-3 text-muted-foreground">{emp.subCategory}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
 
-                            <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex justify-end">
-                                <button
+                            <div className="p-4 border-t border-border bg-background flex justify-end">
+                                <Button
                                     onClick={() => {
                                         const text = untrainedModalData.employees.map(e => `${e.name} (${e.mobile})`).join('\n');
                                         navigator.clipboard.writeText(text);
                                         toast.success("Copied to clipboard");
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-2"
                                 >
                                     <Copy className="w-4 h-4" /> Copy List
-                                </button>
+                                </Button>
                             </div>
                         </motion.div>
                     </div>

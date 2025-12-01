@@ -13,7 +13,7 @@ export default async function OrganizationalStatusPage() {
     const { data: organizations } = await getOrganizations();
 
     return (
-        <div className="space-y-8">
+        <div className="p-6 md:p-10 space-y-8">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">Organizational Employee Status</h1>
                 <p className="text-muted-foreground mt-2">
@@ -23,10 +23,10 @@ export default async function OrganizationalStatusPage() {
 
             {/* Top Cards */}
             <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-                <Card className="border-l-4 border-l-blue-600 bg-blue-50/50">
+                <Card className="border-l-4 border-l-primary bg-primary/5 shadow-sm hover:shadow-md group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Organizational Employee Status</CardTitle>
-                        <Users className="h-4 w-4 text-blue-600" />
+                        <Users className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{masterEmployees?.length || 0}</div>

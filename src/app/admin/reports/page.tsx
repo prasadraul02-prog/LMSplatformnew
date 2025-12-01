@@ -74,23 +74,23 @@ export default async function ReportsPage() {
     ];
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-8 bg-background">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+        <div className="p-6 md:p-10 space-y-8 bg-background">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
                 <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Reports & Analytics</h1>
-                    <p className="text-muted-foreground mt-1 sm:mt-2">
+                    <h1 className="text-3xl font-bold tracking-tight">Reports & Analytics</h1>
+                    <p className="text-muted-foreground mt-2">
                         Monitor training progress and organizational performance.
                     </p>
                 </div>
-                <Button>
+                <Button variant="outline">
                     <Download className="mr-2 h-4 w-4" />
                     Download Summary
                 </Button>
             </div>
 
             {/* Quick Stats Overview */}
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-                <Card className="hover:border-primary/60 transition-colors">
+            <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
+                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
                         <Award className="h-4 w-4 text-muted-foreground" />
@@ -100,7 +100,7 @@ export default async function ReportsPage() {
                         <p className="text-xs text-muted-foreground">Across all courses</p>
                     </CardContent>
                 </Card>
-                <Card className="hover:border-primary/60 transition-colors">
+                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Enrollments</CardTitle>
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -110,7 +110,7 @@ export default async function ReportsPage() {
                         <p className="text-xs text-muted-foreground">Active learning paths</p>
                     </CardContent>
                 </Card>
-                <Card className="hover:border-primary/60 transition-colors">
+                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Certificates Issued</CardTitle>
                         <FileText className="h-4 w-4 text-muted-foreground" />
@@ -125,7 +125,7 @@ export default async function ReportsPage() {
             <div className="grid gap-8 lg:grid-cols-5 lg:gap-8">
                 {/* Main Content: Department Performance */}
                 <div className="lg:col-span-3">
-                    <Card className="h-full">
+                    <Card className="h-full shadow-sm">
                         <CardHeader>
                             <CardTitle>Department Performance</CardTitle>
                             <CardDescription>Completion rates and enrollment stats by department.</CardDescription>
@@ -135,10 +135,10 @@ export default async function ReportsPage() {
                                 <table className="w-full caption-bottom text-sm">
                                     <thead className="[&_tr]:border-b">
                                         <tr className="border-b transition-colors hover:bg-muted/50">
-                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Department</th>
-                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[150px]">Completion Rate</th>
-                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Enrollments</th>
-                                            <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Completed</th>
+                                            <th className="h-12 px-4 text-left align-middle font-semibold text-muted-foreground">Department</th>
+                                            <th className="h-12 px-4 py-3 text-right align-middle font-semibold text-muted-foreground w-[150px]">Completion Rate</th>
+                                            <th className="h-12 px-4 py-3 text-center align-middle font-semibold text-muted-foreground">Enrollments</th>
+                                            <th className="h-12 px-4 py-3 text-center align-middle font-semibold text-muted-foreground">Completed</th>
                                         </tr>
                                     </thead>
                                     <tbody className="[&_tr:last-child]:border-0">
@@ -173,25 +173,25 @@ export default async function ReportsPage() {
 
                 {/* Side Content: Report Tools */}
                 <div className="lg:col-span-2 space-y-8">
-                    <Card>
+                    <Card className="shadow-sm">
                         <CardHeader>
                             <CardTitle>Report Tools</CardTitle>
                             <CardDescription>Generate and view custom reports.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {reportTools.map((tool) => (
-                                <Link key={tool.title} href={tool.href} className="block">
-                                    <div className="p-4 rounded-lg border bg-card hover:bg-muted transition-colors flex items-center justify-between">
+                                <Link key={tool.title} href={tool.href} className="block group">
+                                    <div className="p-4 rounded-lg border bg-card shadow-sm group-hover:shadow-md transition-all flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            <div className={`p-2 rounded-lg ${tool.bgColor}`}>
-                                                <tool.icon className={`h-6 w-6 ${tool.color}`} />
+                                            <div className={`p-2 rounded-lg bg-primary/10`}>
+                                                <tool.icon className={`h-6 w-6 text-primary`} />
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold">{tool.title}</h3>
                                                 <p className="text-sm text-muted-foreground">{tool.description}</p>
                                             </div>
                                         </div>
-                                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                                        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                                     </div>
                                 </Link>
                             ))}

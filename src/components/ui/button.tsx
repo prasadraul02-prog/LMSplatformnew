@@ -2,6 +2,7 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
 
 export interface ButtonProps
     extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -13,9 +14,9 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ({ className, variant = "default", size = "default", asChild = false, isLoading, children, ...props }, ref) => {
-        const Comp = asChild ? Slot : "button"
+        const Comp = asChild ? Slot : motion.button
 
-        const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+        const baseStyles = "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
 
         const variants = {
             default: "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -36,26 +37,28 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
         if (asChild) {
             return (
-                <Slot
+                <motion(Slot)
                     className={cn(baseStyles, variants[variant], sizes[size], className)}
                     ref={ref}
+                    whileTap={{ scale: 0.98 }}
                     {...props}
                 >
                     {children}
-                </Slot>
+                </motion(Slot)>
             )
         }
 
         return (
-            <button
+            <motion.button
                 className={cn(baseStyles, variants[variant], sizes[size], className)}
                 ref={ref}
                 disabled={isLoading || props.disabled}
+                whileTap={{ scale: 0.98 }}
                 {...props}
             >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {children}
-            </button>
+            </motion.button>
         )
     }
 )
