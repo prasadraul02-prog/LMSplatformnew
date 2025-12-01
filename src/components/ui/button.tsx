@@ -2,12 +2,12 @@ import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
-import { motion } from "framer-motion"
+import { motion, HTMLMotionProps } from "framer-motion"
 
 const MotionSlot = motion(Slot)
 
 export interface ButtonProps
-    extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    extends HTMLMotionProps<"button"> {
     asChild?: boolean
     variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "gradient"
     size?: "default" | "sm" | "lg" | "icon"
