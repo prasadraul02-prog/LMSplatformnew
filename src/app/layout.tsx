@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { RegisterServiceWorker } from "@/components/register-sw";
 import { Toaster } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Sidebar } from "@/components/layout/sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -48,8 +49,18 @@ export default function RootLayout({
                 <Providers attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
                     <RegisterServiceWorker />
                     <Toaster position="top-center" richColors />
-                    <ThemeToggle />
-                    {children}
+
+                    <div className="flex min-h-screen bg-background">
+                        {/* Sidebar Navigation */}
+                        <Sidebar />
+
+                        {/* Main Content Area */}
+                        <main className="flex-1 lg:pl-72 transition-all duration-300 ease-in-out">
+                            <div className="container-responsive py-6 lg:py-8 animate-in-fade">
+                                {children}
+                            </div>
+                        </main>
+                    </div>
                 </Providers>
             </body>
         </html>
