@@ -55,8 +55,8 @@ export default function RootLayout({
                         <Sidebar />
 
                         {/* Main Content Area */}
-                        <main className="flex-1 lg:pl-72 transition-all duration-300 ease-in-out">
-                            <div className="container-responsive py-6 lg:py-8 animate-in-fade">
+                        <main className="flex-1 lg:pl-[18rem] transition-all duration-300 ease-in-out min-h-screen">
+                            <div className="container-responsive py-6 lg:py-8 px-4 lg:px-8 animate-in-fade">
                                 {children}
                             </div>
                         </main>
