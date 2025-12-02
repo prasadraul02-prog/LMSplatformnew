@@ -88,10 +88,10 @@ export function HorizontalNav() {
                                 {item.title}
                                 {pathname.startsWith(item.href) && (
                                     <motion.div
-                                        layoutId="underline"
-                                        className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-primary"
-                                        initial={false}
-                                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                        className="absolute -bottom-[21px] left-0 right-0 h-[2px] bg-primary pointer-events-none"
+                                        initial={{ opacity: 0, scaleX: 0 }}
+                                        animate={{ opacity: 1, scaleX: 1 }}
+                                        transition={{ duration: 0.2 }}
                                     />
                                 )}
                             </Link>
