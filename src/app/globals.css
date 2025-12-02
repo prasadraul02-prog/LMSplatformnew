@@ -122,9 +122,42 @@
     @apply bg-white/10 dark:bg-black/10 backdrop-blur-md border border-white/10 dark:border-white/5 shadow-md;
   }
 
-  /* Button Glow Effects */
-  .glow-effect {
-    @apply transition-all duration-200 ease-out relative overflow-hidden;
+  /* Elevated Shadow Effects */
+  .elevated {
+    @apply shadow-md hover:shadow-lg transition-shadow duration-200;
+  }
+
+  .elevated-lg {
+    @apply shadow-lg hover:shadow-xl transition-shadow duration-200;
+  }
+
+  /* Touch Target - Mobile Optimization */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Responsive Container */
+  .container-responsive {
+    @apply container mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Shimmer Animation for Loading States */
+  .shimmer {
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(255, 255, 255, 0.1),
+        transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   .glow-success:hover {
