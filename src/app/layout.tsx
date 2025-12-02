@@ -4,8 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { RegisterServiceWorker } from "@/components/register-sw";
 import { Toaster } from "sonner";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { Sidebar } from "@/components/layout/sidebar";
+import { Navbar } from "@/components/layout/navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -50,12 +49,12 @@ export default function RootLayout({
                     <RegisterServiceWorker />
                     <Toaster position="top-center" richColors />
 
-                    <div className="flex min-h-screen bg-background">
-                        {/* Sidebar Navigation */}
-                        <Sidebar />
+                    <div className="min-h-screen bg-background flex flex-col">
+                        {/* Navbar Navigation */}
+                        <Navbar />
 
                         {/* Main Content Area */}
-                        <main className="flex-1 lg:pl-[18rem] transition-all duration-300 ease-in-out min-h-screen">
+                        <main className="flex-1 pt-16 transition-all duration-300 ease-in-out min-h-screen">
                             <div className="container-responsive py-6 lg:py-8 px-4 lg:px-8 animate-in-fade">
                                 {children}
                             </div>
