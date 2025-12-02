@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { HorizontalNav } from "@/components/admin/horizontal-nav";
 
 export default async function AdminLayout({
     children,
@@ -15,7 +14,6 @@ export default async function AdminLayout({
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            <HorizontalNav />
             <main className="flex-1 w-full">
                 <div className="container-responsive py-6 md:py-8">
                     {children}
