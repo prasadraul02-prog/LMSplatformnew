@@ -124,7 +124,7 @@
 
   /* Button Glow Effects */
   .glow-effect {
-    @apply transition-all duration-300 ease-in-out relative overflow-hidden;
+    @apply transition-all duration-200 ease-out relative overflow-hidden;
   }
 
   .glow-success:hover {
@@ -152,13 +152,13 @@
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-600;
   }
 
-  /* Smooth Transitions */
+  /* Smooth Transitions - Optimized for Speed */
   .transition-all-200 {
-    @apply transition-all duration-200 ease-in-out;
+    @apply transition-all duration-150 ease-out;
   }
 
   .transition-all-300 {
-    @apply transition-all duration-300 ease-in-out;
+    @apply transition-all duration-200 ease-out;
   }
 
   /* Custom Scrollbar */

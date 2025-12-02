@@ -30,6 +30,11 @@ export function Navbar() {
         return null;
     }
 
+    // Hide navbar on login page
+    if (pathname === "/" || pathname === "/login") {
+        return null;
+    }
+
     const menuItems = [
         {
             title: "Profile",
