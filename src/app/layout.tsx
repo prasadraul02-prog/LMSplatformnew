@@ -55,7 +55,7 @@ export default function RootLayout({
 
                         {/* Main Content Area */}
                         <main className="flex-1 pt-16 transition-all duration-300 ease-in-out min-h-screen">
-                            <div className="container-responsive py-6 lg:py-8 px-4 lg:px-8 animate-in-fade">
+                            <div className="container-responsive pt-2 pb-6 lg:pb-8 px-4 lg:px-8 animate-in-fade">
                                 {children}
                             </div>
                         </main>
