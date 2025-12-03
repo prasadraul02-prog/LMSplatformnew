@@ -150,17 +150,49 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
     };
 
     const handleImageUpload = async (file: File, questionIndex: number, optionIndex?: number) => {
+        // Client-side validation
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+            toast.error(`File size exceeds 5MB limit (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+            return;
+        }
+
+        if (file.size === 0) {
+            toast.error('File is empty');
+            return;
+        }
+
+        // Validate file type
+        if (!ALLOWED_TYPES.includes(file.type.toLowerCase())) {
+            toast.error('Please upload a valid image file (JPG, PNG, GIF, or WebP)');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('file', file);
 
+        // Show loading toast
+        const loadingToast = toast.loading('Uploading image...');
+
         try {
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
             const res = await fetch('/api/quiz/upload-image', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                signal: controller.signal
             });
 
+            clearTimeout(timeoutId);
+
             if (res.ok) {
-                const { url } = await res.json();
+                const data = await res.json();
+                const { url } = data;
 
                 if (optionIndex !== undefined) {
                     updateOption(questionIndex, optionIndex, 'imageUrl', url);
@@ -168,12 +200,32 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                     updateQuestion(questionIndex, 'imageUrl', url);
                 }
 
-                toast.success('Image uploaded successfully');
+                toast.success('Image uploaded successfully', { id: loadingToast });
             } else {
-                toast.error('Failed to upload image');
+                // Parse error response
+                const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                const errorMessage = errorData.details || errorData.error || 'Failed to upload image';
+
+                console.error('Upload failed:', errorMessage);
+                toast.error(errorMessage, { id: loadingToast });
             }
         } catch (error) {
-            toast.error('Failed to upload image');
+            console.error('Upload error:', error);
+
+            // Handle specific error types
+            let errorMessage = 'Failed to upload image';
+
+            if (error instanceof Error) {
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Upload timeout - please try again with a smaller file';
+                } else if (error.message.includes('fetch')) {
+                    errorMessage = 'Network error - please check your connection';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
+            toast.error(errorMessage, { id: loadingToast });
         }
     };
 
