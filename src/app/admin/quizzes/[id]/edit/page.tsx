@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { PageLoader } from '@/components/ui/page-loader';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
 import {
     ArrowLeft,
     Plus,
@@ -174,8 +176,8 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
         const formData = new FormData();
         formData.append('file', file);
 
-        // Show loading toast
-        const loadingToast = toast.loading('Uploading image...');
+        // Set uploading state to show loader
+        setSaving(true);
 
         try {
             // Create abort controller for timeout
@@ -200,14 +202,14 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                     updateQuestion(questionIndex, 'imageUrl', url);
                 }
 
-                toast.success('Image uploaded successfully', { id: loadingToast });
+                toast.success('Image uploaded successfully');
             } else {
                 // Parse error response
                 const errorData = await res.json().catch(() => ({ error: 'Unknown error' }));
                 const errorMessage = errorData.details || errorData.error || 'Failed to upload image';
 
                 console.error('Upload failed:', errorMessage);
-                toast.error(errorMessage, { id: loadingToast });
+                toast.error(errorMessage);
             }
         } catch (error) {
             console.error('Upload error:', error);
@@ -225,7 +227,9 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                 }
             }
 
-            toast.error(errorMessage, { id: loadingToast });
+            toast.error(errorMessage);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -383,15 +387,17 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-        );
+        return <PageLoader />;
     }
 
     return (
-        <div className="space-y-6 max-w-5xl pb-20">
+        <div className="space-y-6 max-w-5xl pb-20 relative">
+            {/* Loading overlay for save/upload operations */}
+            <LoadingOverlay
+                isLoading={saving || importingExcel}
+                message={saving ? "Saving changes..." : "Importing questions..."}
+                fullScreen={true}
+            />
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/quizzes">
