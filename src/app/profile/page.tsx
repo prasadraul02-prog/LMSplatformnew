@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Mail, User, Shield, Check } from 'lucide-react';
 import { AVATAR_OPTIONS, getAvatarUrl } from '@/lib/avatar-options';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useState, useTransition } from 'react';
-import { updateAvatar } from './actions';
+import { updateAvatar, updatePassword } from './actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
@@ -21,6 +23,40 @@ export default function ProfilePage() {
 
     // Local state for immediate feedback, defaulting to user's current avatar or 'dog'
     const [selectedAvatar, setSelectedAvatar] = useState<string>(user?.avatar || 'dog');
+
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isPasswordPending, startPasswordTransition] = useTransition();
+
+    const handleUpdatePassword = () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            toast.error("Please fill in all fields");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            toast.error("New passwords do not match");
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            toast.error("Password must be at least 6 characters");
+            return;
+        }
+
+        startPasswordTransition(async () => {
+            const result = await updatePassword(currentPassword, newPassword);
+            if (result.success) {
+                toast.success("Password updated successfully");
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmPassword('');
+            } else {
+                toast.error(result.error || "Failed to update password");
+            }
+        });
+    };
 
     if (!user) {
         return <div className="p-8">Loading...</div>;
@@ -137,6 +173,50 @@ export default function ProfilePage() {
                                     disabled={isPending || selectedAvatar === user.avatar}
                                 >
                                     {isPending ? 'Saving...' : 'Save Avatar'}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Change Password</CardTitle>
+                            <CardDescription>Update your password to keep your account secure</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="current-password">Current Password</Label>
+                                <Input
+                                    id="current-password"
+                                    type="password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="new-password">New Password</Label>
+                                <Input
+                                    id="new-password"
+                                    type="password"
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                                <Input
+                                    id="confirm-password"
+                                    type="password"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex justify-end">
+                                <Button
+                                    onClick={handleUpdatePassword}
+                                    disabled={isPasswordPending}
+                                >
+                                    {isPasswordPending ? 'Updating...' : 'Update Password'}
                                 </Button>
                             </div>
                         </CardContent>

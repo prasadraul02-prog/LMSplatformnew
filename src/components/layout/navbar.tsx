@@ -41,7 +41,14 @@ export function Navbar() {
         return null;
     }
 
-    const mainNavItems = [
+    type NavItem = {
+        title: string;
+        href: string;
+        icon: any;
+        action?: (() => void) | null;
+    };
+
+    const mainNavItems: NavItem[] = [
         {
             title: 'Dashboard',
             href: '/admin/dashboard',
@@ -69,7 +76,7 @@ export function Navbar() {
         },
     ];
 
-    const rightMenuItems = [
+    const rightMenuItems: NavItem[] = [
         {
             title: "Profile",
             href: "/profile",
@@ -148,7 +155,7 @@ export function Navbar() {
                                         key={item.title}
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            item.action();
+                                            item.action?.();
                                         }}
                                         className={className}
                                     >
@@ -204,7 +211,7 @@ export function Navbar() {
                                         key={item.title}
                                         onClick={(e) => {
                                             e.preventDefault();
-                                            item.action();
+                                            item.action?.();
                                             setIsMobileOpen(false);
                                         }}
                                         className={className}

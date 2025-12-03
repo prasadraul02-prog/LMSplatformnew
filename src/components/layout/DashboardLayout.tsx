@@ -42,10 +42,8 @@ export default function DashboardLayout({
         ADMIN: [
             { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
             { href: "/admin/users", label: "Users", icon: Users },
-            { href: "/admin/courses", label: "Courses", icon: BookOpen },
             { href: "/admin/quizzes", label: "Quizzes", icon: FileQuestion },
             { href: "/admin/reports", label: "Reports", icon: FileText },
-            { href: "/admin/automation", label: "Automation", icon: Settings },
         ],
         TRAINER: [
             { href: "/trainer", label: "Dashboard", icon: LayoutDashboard },
