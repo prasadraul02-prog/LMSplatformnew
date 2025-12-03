@@ -1,4 +1,3 @@
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
     Users,
@@ -6,7 +5,7 @@ import {
     ArrowRight,
     Download
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 
