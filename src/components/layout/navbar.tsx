@@ -53,11 +53,6 @@ export function Navbar() {
             icon: Users,
         },
         {
-            title: 'Courses',
-            href: '/admin/courses',
-            icon: BookOpen,
-        },
-        {
             title: 'Quizzes',
             href: '/admin/quizzes',
             icon: FileQuestion,
@@ -72,11 +67,6 @@ export function Navbar() {
             href: '/admin/notifications/send',
             icon: Bell,
         },
-        {
-            title: 'Automation',
-            href: '/admin/automation',
-            icon: Settings,
-        },
     ];
 
     const rightMenuItems = [
@@ -84,12 +74,6 @@ export function Navbar() {
             title: "Profile",
             href: "/profile",
             icon: User,
-            action: null
-        },
-        {
-            title: "Main Menu",
-            href: "/settings",
-            icon: Settings,
             action: null
         },
         {
