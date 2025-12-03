@@ -1,50 +1,31 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
-    BarChart3,
-    FileText,
     Users,
     TrendingUp,
-    Award,
-    BookOpen,
     ArrowRight,
-    Download,
-    Search
+    Download
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 
 export default async function ReportsPage() {
-    // Fetch data for reports in parallel
-    const [
-        totalUsers,
-        totalCourses,
-        totalEnrollments,
-        completedEnrollments,
-        departments
-    ] = await Promise.all([
-        prisma.user.count({ where: { role: 'EMPLOYEE' } }),
-        prisma.course.count(),
-        prisma.enrollment.count(),
-        prisma.enrollment.count({ where: { progress: 100 } }),
-        prisma.department.findMany({
-            select: {
-                name: true,
-                users: {
-                    select: {
-                        enrollments: {
-                            select: {
-                                progress: true
-                            }
+    // Fetch data for reports
+    const departments = await prisma.department.findMany({
+        select: {
+            name: true,
+            users: {
+                select: {
+                    enrollments: {
+                        select: {
+                            progress: true
                         }
                     }
                 }
             }
-        })
-    ]);
-
-    const completionRate = totalEnrollments > 0 ? Math.round((completedEnrollments / totalEnrollments) * 100) : 0;
+        }
+    });
 
     const deptStats = departments.map(dept => {
         const deptEnrollments = dept.users.flatMap(u => u.enrollments);
@@ -82,40 +63,6 @@ export default async function ReportsPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Download Summary
                 </Button>
-            </div>
-
-            {/* Quick Stats Overview */}
-            <div className="grid gap-5 sm:gap-6 md:grid-cols-3">
-                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-                        <Award className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{completionRate}%</div>
-                        <p className="text-xs text-muted-foreground">Across all courses</p>
-                    </CardContent>
-                </Card>
-                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Enrollments</CardTitle>
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{totalEnrollments}</div>
-                        <p className="text-xs text-muted-foreground">Active learning paths</p>
-                    </CardContent>
-                </Card>
-                <Card className="hover:border-primary/60 transition-colors shadow-sm hover:shadow-md group">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Certificates Issued</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{completedEnrollments}</div>
-                        <p className="text-xs text-muted-foreground">For completed courses</p>
-                    </CardContent>
-                </Card>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-5 lg:gap-8">
