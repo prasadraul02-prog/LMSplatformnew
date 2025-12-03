@@ -555,6 +555,54 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                                             />
                                         </label>
                                     </div>
+
+                                    {/* URL Input Option */}
+                                    <div className="mt-3 space-y-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 border-t border-muted"></div>
+                                            <span className="text-xs text-muted-foreground">OR</span>
+                                            <div className="flex-1 border-t border-muted"></div>
+                                        </div>
+                                        <Input
+                                            type="url"
+                                            placeholder="Paste image URL (Dropbox, Google Drive, direct link, etc.)"
+                                            className="text-sm"
+                                            onPaste={(e) => {
+                                                setTimeout(() => {
+                                                    const url = e.currentTarget.value.trim();
+                                                    if (url) {
+                                                        try {
+                                                            new URL(url);
+                                                            updateQuestion(qIndex, 'imageUrl', url);
+                                                            toast.success('Image URL added');
+                                                            e.currentTarget.value = '';
+                                                        } catch {
+                                                            toast.error('Invalid URL format');
+                                                        }
+                                                    }
+                                                }, 100);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    e.preventDefault();
+                                                    const url = e.currentTarget.value.trim();
+                                                    if (url) {
+                                                        try {
+                                                            new URL(url);
+                                                            updateQuestion(qIndex, 'imageUrl', url);
+                                                            toast.success('Image URL added');
+                                                            e.currentTarget.value = '';
+                                                        } catch {
+                                                            toast.error('Invalid URL format');
+                                                        }
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            Paste URL and press Enter to add image from external source
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">

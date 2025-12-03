@@ -62,9 +62,54 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create upload directory atomically (recursive: true handles race conditions)
-        const uploadDir = join(process.cwd(), 'public', 'quiz-images');
-        await mkdir(uploadDir, { recursive: true });
+        // Create upload directory with robust path resolution
+        // Try multiple path strategies to handle different deployment environments
+        let uploadDir: string;
+        let publicDir: string;
+
+        // Strategy 1: Standard Next.js public directory
+        publicDir = join(process.cwd(), 'public');
+
+        // Strategy 2: If public doesn't exist at cwd, try parent directory (for some deployment scenarios)
+        const fs = await import('fs');
+        if (!fs.existsSync(publicDir)) {
+            const parentPublic = join(process.cwd(), '..', 'public');
+            if (fs.existsSync(parentPublic)) {
+                publicDir = parentPublic;
+            } else {
+                // Strategy 3: Use absolute path if available from environment
+                if (process.env.PUBLIC_DIR) {
+                    publicDir = process.env.PUBLIC_DIR;
+                } else {
+                    console.error('Public directory not found at:', publicDir);
+                    console.error('Current working directory:', process.cwd());
+                    return NextResponse.json(
+                        {
+                            error: 'Upload directory not configured',
+                            details: 'Public directory not found. Please contact administrator.'
+                        },
+                        { status: 500 }
+                    );
+                }
+            }
+        }
+
+        uploadDir = join(publicDir, 'quiz-images');
+        console.log('Upload directory path:', uploadDir);
+
+        try {
+            await mkdir(uploadDir, { recursive: true });
+            console.log('Upload directory ready:', uploadDir);
+        } catch (mkdirError) {
+            console.error('Failed to create upload directory:', mkdirError);
+            return NextResponse.json(
+                {
+                    error: 'Failed to create upload directory',
+                    details: mkdirError instanceof Error ? mkdirError.message : 'Unknown error'
+                },
+                { status: 500 }
+            );
+        }
 
         // Generate unique filename
         const timestamp = Date.now();
