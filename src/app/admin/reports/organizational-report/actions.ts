@@ -16,6 +16,31 @@ export async function getMasterEmployees() {
     }
 }
 
+function parseDate(value: any): Date | null {
+    if (!value) return null;
+
+    // If already a Date object
+    if (value instanceof Date && !isNaN(value.getTime())) return value;
+
+    // If Excel serial number (number)
+    if (typeof value === 'number') {
+        // Excel base date is Dec 30 1899
+        return new Date(Math.round((value - 25569) * 86400 * 1000));
+    }
+
+    // String parsing
+    const str = String(value).trim();
+
+    // Try standard Date.parse
+    const timestamp = Date.parse(str);
+    if (!isNaN(timestamp)) return new Date(timestamp);
+
+    // Try parsing "DD Month YYYY" or "DD-MM-YYYY" manually if needed
+    // But Date.parse handles "27 March 2017" well.
+
+    return null;
+}
+
 export async function uploadMasterDatabase(formData: FormData) {
     try {
         const file = formData.get('file') as File;
@@ -27,16 +52,35 @@ export async function uploadMasterDatabase(formData: FormData) {
         const workbook = XLSX.read(buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
 
-        if (jsonData.length === 0) {
+        // Read as array of arrays to find the header row
+        const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
+
+        if (rawData.length === 0) {
             return { success: false, error: "Sheet is empty" };
         }
 
-        // Auto-detect columns
-        // We look for keywords in keys
-        const firstRow = jsonData[0] as any;
-        const keys = Object.keys(firstRow);
+        // Find header row
+        let headerRowIndex = -1;
+        let keys: string[] = [];
+
+        for (let i = 0; i < Math.min(rawData.length, 10); i++) {
+            const row = rawData[i];
+            const rowStr = row.join(' ').toLowerCase();
+            // Check for critical columns in this row
+            if (rowStr.includes('unique') && rowStr.includes('name')) {
+                headerRowIndex = i;
+                keys = row.map(cell => String(cell).trim());
+                break;
+            }
+        }
+
+        if (headerRowIndex === -1) {
+            // Fallback: Use first row if we couldn't find a clear header
+            headerRowIndex = 0;
+            keys = (rawData[0] as any[]).map(cell => String(cell).trim());
+            console.log("Could not find header row with 'Unique' and 'Name'. Using first row:", keys);
+        }
 
         const mapColumn = (keywords: string[]) => {
             return keys.find(key => keywords.some(k => key.toLowerCase().includes(k.toLowerCase())));
@@ -52,43 +96,79 @@ export async function uploadMasterDatabase(formData: FormData) {
         const colDoj = mapColumn(['joining', 'doj', 'date of joining']);
 
         if (!colUniqueId || !colName) {
-            return { success: false, error: "Critical columns (Unique ID, Name) not found. Please check column headers." };
+            return {
+                success: false,
+                error: `Critical columns not found. Detected headers: [${keys.join(', ')}]. Expected 'Unique ID' and 'Name'.`
+            };
         }
 
-        // Prepare data for bulk insert/update
-        // Using transaction to replace or upsert
-        // The requirement says "Import Excel (replace existing master)"
-        // So we delete all and insert new? Or upsert?
-        // "Replace existing master" usually means wipe and load.
+        // Parse data using found headers
+        const validRows: any[] = [];
+        const errors: string[] = [];
+        const seenIds = new Set<string>();
+
+        // Start reading from the row AFTER the header
+        for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+            const rowArray = rawData[i];
+            // Map row array to object based on keys indices
+            const row: any = {};
+            keys.forEach((key, idx) => {
+                row[key] = rowArray[idx];
+            });
+
+            const rowNum = i + 1;
+            const uniqueId = String(row[colUniqueId!] || '').trim();
+
+            if (!uniqueId) {
+                // Skip empty rows silently
+                continue;
+            }
+
+            if (seenIds.has(uniqueId)) {
+                errors.push(`Row ${rowNum}: Duplicate Unique ID '${uniqueId}'`);
+                continue;
+            }
+
+            seenIds.add(uniqueId);
+
+            const dojRaw = colDoj ? row[colDoj] : null;
+            const doj = parseDate(dojRaw);
+
+            validRows.push({
+                uniqueId: uniqueId,
+                organizationName: colOrgName ? String(row[colOrgName] || '') : 'Unknown',
+                employmentStatus: colStatus ? String(row[colStatus] || '') : 'Unknown',
+                employeeId: colEmpId ? String(row[colEmpId] || '') : null,
+                name: colName ? String(row[colName] || '') : 'Unknown',
+                branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
+                designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
+                dateOfJoining: doj,
+            });
+        }
+
+        if (validRows.length === 0) {
+            return { success: false, error: "No valid rows found. Please check the file content." };
+        }
 
         await prisma.$transaction(async (tx) => {
             await (tx as any).masterEmployee.deleteMany();
-
-            for (const row of jsonData as any[]) {
-                const uniqueId = String(row[colUniqueId!] || '').trim();
-                if (!uniqueId) continue;
-
-                await (tx as any).masterEmployee.create({
-                    data: {
-                        uniqueId: uniqueId,
-                        organizationName: colOrgName ? String(row[colOrgName] || '') : 'Unknown',
-                        employmentStatus: colStatus ? String(row[colStatus] || '') : 'Unknown',
-                        employeeId: colEmpId ? String(row[colEmpId] || '') : null,
-                        name: colName ? String(row[colName] || '') : 'Unknown',
-                        branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
-                        designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
-                        dateOfJoining: colDoj ? new Date(row[colDoj]) : null, // parsing date might need more robustness
-                    }
-                });
-            }
+            await (tx as any).masterEmployee.createMany({
+                data: validRows
+            });
         });
 
         revalidatePath('/admin/organizational-status');
-        return { success: true, message: `Successfully imported ${jsonData.length} employees.` };
+
+        let message = `Successfully imported ${validRows.length} employees.`;
+        if (errors.length > 0) {
+            message += ` ${errors.length} duplicates skipped.`;
+        }
+
+        return { success: true, message: message, errors: errors };
 
     } catch (error) {
         console.error("Error uploading master database:", error);
-        return { success: false, error: "Failed to process file" };
+        return { success: false, error: "System Error: " + (error as Error).message };
     }
 }
 
