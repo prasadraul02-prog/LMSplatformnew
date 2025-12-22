@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import {
     X
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { toast } from 'sonner';
 
 interface QuizOption {
@@ -62,13 +63,8 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
         }
     }, [params]);
 
-    useEffect(() => {
-        if (quizId) {
-            fetchQuiz();
-        }
-    }, [quizId]);
-
-    const fetchQuiz = async () => {
+    const fetchQuiz = useCallback(async () => {
+        if (!quizId) return;
         try {
             const res = await fetch(`/api/quiz?id=${quizId}`);
             if (res.ok) {
@@ -84,7 +80,11 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [quizId, router]);
+
+    useEffect(() => {
+        fetchQuiz();
+    }, [fetchQuiz]);
 
     const addQuestion = () => {
         const newQuestion: QuizQuestion = {
@@ -516,10 +516,12 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
                                     <div className="flex gap-2">
                                         {question.imageUrl && (
                                             <div className="relative">
-                                                <img
+                                                <Image
                                                     src={question.imageUrl}
                                                     alt="Question"
-                                                    className="w-32 h-32 object-cover rounded border"
+                                                    width={128}
+                                                    height={128}
+                                                    className="object-cover rounded border"
                                                 />
                                                 <Button
                                                     variant="destructive"

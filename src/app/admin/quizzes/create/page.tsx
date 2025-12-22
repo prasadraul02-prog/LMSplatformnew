@@ -104,7 +104,7 @@ export default function CreateQuizPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Create New Quiz</h1>
                     <p className="text-muted-foreground mt-1">
-                        Set up basic quiz settings. You'll add questions in the next step.
+                        Set up basic quiz settings. You&apos;ll add questions in the next step.
                     </p>
                 </div>
             </div>

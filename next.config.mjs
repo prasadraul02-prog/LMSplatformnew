@@ -1,8 +1,18 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   swcMinify: true,
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'dqqjocaoprwlnoqapymg.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'dqqjocaoprwlnoqapymg.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
@@ -128,6 +138,29 @@ const nextConfig = {
   },
 };
 
+export default withSentryConfig(nextConfig, {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
 
-export default nextConfig;
+  // Suppresses source map uploading logs during bundling
+  silent: true,
+  org: "prasadraul02",
+  project: "javascript-nextjs",
+}, {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-nextjs/blob/main/src/config/types.ts
 
+  // Routes browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+  // See https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#tunnel-requests-to-sentry
+  tunnelRoute: "/monitoring",
+
+  // Hides source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+
+  // Enables automatic instrumentation of Vercel Cron Monitors.
+  // See https://docs.sentry.io/product/crons/
+  automaticVercelMonitors: true,
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, MapPin, CheckCircle, XCircle, Clock, RefreshCw, TrendingUp, Activity } from 'lucide-react';
 import { toast, Toaster } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,7 +42,7 @@ export default function TrainingMonitor() {
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [resetting, setResetting] = useState(false);
 
-    const fetchRequests = async (showToast = false) => {
+    const fetchRequests = useCallback(async (showToast = false) => {
         setLoading(true);
         try {
             const url = filter === 'ALL'
@@ -63,7 +63,7 @@ export default function TrainingMonitor() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filter]);
 
     const handleReset = async () => {
         setResetting(true);
@@ -91,7 +91,7 @@ export default function TrainingMonitor() {
         fetchRequests();
         const interval = setInterval(() => fetchRequests(), 10000);
         return () => clearInterval(interval);
-    }, [filter]);
+    }, [fetchRequests]);
 
     const getStatusBadge = (status: string) => {
         const badges: Record<string, { color: string; bgColor: string; icon: any; label: string }> = {

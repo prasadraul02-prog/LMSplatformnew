@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,13 +41,8 @@ export default function QuizResultsPage({ params }: { params: { id: string } }) 
         }
     }, [params]);
 
-    useEffect(() => {
-        if (quizId) {
-            fetchResults();
-        }
-    }, [quizId]);
-
-    const fetchResults = async () => {
+    const fetchResults = useCallback(async () => {
+        if (!quizId) return;
         try {
             const res = await fetch(`/api/quiz/results?quizId=${quizId}`);
             if (res.ok) {
@@ -76,7 +71,11 @@ export default function QuizResultsPage({ params }: { params: { id: string } }) 
         } finally {
             setLoading(false);
         }
-    };
+    }, [quizId]);
+
+    useEffect(() => {
+        fetchResults();
+    }, [fetchResults]);
 
     const downloadCSV = async () => {
         try {
