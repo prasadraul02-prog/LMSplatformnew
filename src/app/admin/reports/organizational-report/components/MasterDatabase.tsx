@@ -300,10 +300,10 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                 <td className="p-4 text-xs">{emp.branch}</td>
                                                 <td className="p-4 text-xs">{emp.designation}</td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
+                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase() === 'deactive' || emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
                                                         'bg-green-100 text-green-700'
                                                         }`}>
-                                                        {emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? emp.employmentStatus : 'ACTIVE'}
+                                                        {emp.employmentStatus.toLowerCase() === 'deactive' || emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-xs font-semibold text-slate-600">

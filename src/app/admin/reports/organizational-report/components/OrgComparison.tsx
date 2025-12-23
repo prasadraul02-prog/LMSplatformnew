@@ -50,7 +50,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         e.target.value = '';
     };
 
-    const handleApply = async (type: 'new' | 'status' | 'transfer', items: any[]) => {
+    const handleApply = async (type: 'new' | 'status' | 'transfer' | 'resigned', items: any[]) => {
         if (items.length === 0) return;
 
         setIsApplying(true);
@@ -58,6 +58,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         if (type === 'new') payload.newEmployees = items;
         if (type === 'status') payload.statusChanges = items;
         if (type === 'transfer') payload.transfers = items;
+        if (type === 'resigned') payload.resignedEmployees = items;
 
         const result = await applyChanges(payload);
         if (result.success) {
@@ -69,6 +70,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                 if (type === 'new') newState.newEmployees = [];
                 if (type === 'status') newState.statusChanges = [];
                 if (type === 'transfer') newState.transfers = [];
+                if (type === 'resigned') newState.resignedEmployees = [];
                 return newState;
             });
         } else {
@@ -261,9 +263,23 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                     </tbody>
                                                 </table>
                                             </div>
-                                            <Button variant="secondary" disabled>
-                                                Marked as Resigned (Display Only)
-                                            </Button>
+                                            <div className="flex gap-4">
+                                                <Button
+                                                    variant="destructive"
+                                                    className="font-bold"
+                                                    onClick={() => handleApply('resigned', comparisonResult.resignedEmployees)}
+                                                    disabled={isApplying}
+                                                >
+                                                    {isApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
+                                                    Yes, Mark as Deactive in Master Database
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => setComparisonResult({ ...comparisonResult, resignedEmployees: [] })}
+                                                >
+                                                    No, Ignore
+                                                </Button>
+                                            </div>
                                         </CardContent>
                                     </Card>
                                 )}

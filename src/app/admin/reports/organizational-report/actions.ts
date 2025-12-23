@@ -350,9 +350,9 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             }).filter(r => r.uniqueId);
         };
 
-        const staff = parseSheet(staffSheetName, 'Permanent');
-        const trial = parseSheet(trialSheetName, 'On Trial');
-        const contract = parseSheet(contractSheetName, 'Contract');
+        const staff = parseSheet(staffSheetName, 'Active');
+        const trial = parseSheet(trialSheetName, 'Active');
+        const contract = parseSheet(contractSheetName, 'Active');
 
         const allUploaded = [...staff, ...trial, ...contract];
         const uploadedIds = new Set(allUploaded.map(e => e.uniqueId));
@@ -420,10 +420,21 @@ export async function applyChanges(changes: {
     newEmployees?: any[],
     statusChanges?: any[],
     transfers?: any[],
+    resignedEmployees?: any[],
     orgName: string
 }) {
     try {
         await prisma.$transaction(async (tx) => {
+            // Deactivate Resigned Employees
+            if (changes.resignedEmployees) {
+                for (const emp of changes.resignedEmployees) {
+                    await (tx as any).masterEmployee.update({
+                        where: { uniqueId: emp.uniqueId },
+                        data: { employmentStatus: 'Deactive' }
+                    });
+                }
+            }
+
             // Add New Employees
             if (changes.newEmployees) {
                 for (const emp of changes.newEmployees) {
