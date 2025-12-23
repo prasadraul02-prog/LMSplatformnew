@@ -388,6 +388,15 @@ model MasterEmployee {
   designation       String
   dateOfJoining     DateTime?
   
+  // New fields for better visibility
+  gender            String?
+  dob               DateTime?
+  email             String?
+  phone             String?
+  
+  // Dynamic columns stored as JSON string
+  additionalData    String?   @db.Text
+  
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 

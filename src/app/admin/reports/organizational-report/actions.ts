@@ -4,12 +4,39 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from 'xlsx';
 import { revalidatePath } from "next/cache";
 
-export async function getMasterEmployees() {
+export async function getMasterEmployees(page: number = 1, limit: number = 50, search: string = "") {
     try {
-        const employees = await (prisma as any).masterEmployee.findMany({
-            orderBy: { createdAt: 'desc' }
-        });
-        return { success: true, data: employees };
+        const skip = (page - 1) * limit;
+        const where = search ? {
+            OR: [
+                { name: { contains: search, mode: 'insensitive' as any } },
+                { uniqueId: { contains: search, mode: 'insensitive' as any } },
+                { organizationName: { contains: search, mode: 'insensitive' as any } },
+                { branch: { contains: search, mode: 'insensitive' as any } },
+                { designation: { contains: search, mode: 'insensitive' as any } },
+            ]
+        } : {};
+
+        const [employees, total] = await Promise.all([
+            (prisma as any).masterEmployee.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' }
+            }),
+            (prisma as any).masterEmployee.count({ where })
+        ]);
+
+        return {
+            success: true,
+            data: employees,
+            metadata: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
     } catch (error) {
         console.error("Error fetching master employees:", error);
         return { success: false, error: "Failed to fetch master employees" };
@@ -94,6 +121,10 @@ export async function uploadMasterDatabase(formData: FormData) {
         const colBranch = mapColumn(['branch', 'location', 'site']);
         const colDesignation = mapColumn(['designation', 'role', 'position']);
         const colDoj = mapColumn(['joining', 'doj', 'date of joining']);
+        const colGender = mapColumn(['gender', 'sex']);
+        const colDob = mapColumn(['dob', 'birth', 'date of birth']);
+        const colEmail = mapColumn(['email', 'mail']);
+        const colPhone = mapColumn(['phone', 'mobile', 'contact']);
 
         if (!colUniqueId || !colName) {
             return {
@@ -101,6 +132,8 @@ export async function uploadMasterDatabase(formData: FormData) {
                 error: `Critical columns not found. Detected headers: [${keys.join(', ')}]. Expected 'Unique ID' and 'Name'.`
             };
         }
+
+        const coreCols = [colUniqueId, colOrgName, colStatus, colEmpId, colName, colBranch, colDesignation, colDoj, colGender, colDob, colEmail, colPhone].filter(Boolean) as string[];
 
         // Parse data using found headers
         const validRows: any[] = [];
@@ -131,6 +164,13 @@ export async function uploadMasterDatabase(formData: FormData) {
 
             seenIds.add(uniqueId);
 
+            const additionalData: Record<string, any> = {};
+            keys.forEach((key, idx) => {
+                if (!coreCols.includes(key)) {
+                    additionalData[key] = rowArray[idx];
+                }
+            });
+
             const dojRaw = colDoj ? row[colDoj] : null;
             const doj = parseDate(dojRaw);
 
@@ -143,6 +183,11 @@ export async function uploadMasterDatabase(formData: FormData) {
                 branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
                 designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
                 dateOfJoining: doj,
+                gender: colGender ? String(row[colGender] || '') : null,
+                dob: colDob ? parseDate(row[colDob]) : null,
+                email: colEmail ? String(row[colEmail] || '') : null,
+                phone: colPhone ? String(row[colPhone] || '') : null,
+                additionalData: JSON.stringify(additionalData),
             });
         }
 
@@ -157,7 +202,7 @@ export async function uploadMasterDatabase(formData: FormData) {
             });
         });
 
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
 
         let message = `Successfully imported ${validRows.length} employees.`;
         if (errors.length > 0) {
@@ -175,10 +220,55 @@ export async function uploadMasterDatabase(formData: FormData) {
 export async function resetSystem() {
     try {
         await (prisma as any).masterEmployee.deleteMany();
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "System reset successfully" };
     } catch (error) {
         return { success: false, error: "Failed to reset system" };
+    }
+}
+
+export async function updateMasterEmployee(id: string, data: any) {
+    try {
+        // Separate core fields from additionalData
+        const coreFields = ['name', 'uniqueId', 'organizationName', 'employmentStatus', 'employeeId', 'branch', 'designation', 'dateOfJoining', 'gender', 'dob', 'email', 'phone'];
+        const updateData: any = {};
+        const additionalData: any = {};
+
+        Object.keys(data).forEach(key => {
+            if (coreFields.includes(key)) {
+                updateData[key] = data[key];
+            } else if (key !== 'id' && key !== 'createdAt' && key !== 'updatedAt') {
+                additionalData[key] = data[key];
+            }
+        });
+
+        if (Object.keys(additionalData).length > 0) {
+            updateData.additionalData = JSON.stringify(additionalData);
+        }
+
+        await (prisma as any).masterEmployee.update({
+            where: { id },
+            data: updateData
+        });
+
+        revalidatePath('/admin/reports/organizational-report');
+        return { success: true, message: "Employee updated successfully" };
+    } catch (error) {
+        console.error("Error updating employee:", error);
+        return { success: false, error: "Failed to update employee" };
+    }
+}
+
+export async function deleteMasterEmployee(id: string) {
+    try {
+        await (prisma as any).masterEmployee.delete({
+            where: { id }
+        });
+        revalidatePath('/admin/reports/organizational-report');
+        return { success: true, message: "Employee deleted successfully" };
+    } catch (error) {
+        console.error("Error deleting employee:", error);
+        return { success: false, error: "Failed to delete employee" };
     }
 }
 
@@ -343,7 +433,7 @@ export async function applyChanges(changes: {
             }
         });
 
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "Changes applied successfully" };
     } catch (error) {
         console.error("Error applying changes:", error);
@@ -390,7 +480,7 @@ export async function addOrganization(name: string) {
         await (prisma as any).organization.create({
             data: { name, order: count }
         });
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "Organization added successfully" };
     } catch (error) {
         return { success: false, error: "Failed to add organization" };
@@ -414,7 +504,7 @@ export async function updateOrganization(id: string, name: string, order: number
             });
         }
 
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "Organization updated successfully" };
     } catch (error) {
         return { success: false, error: "Failed to update organization" };
@@ -424,7 +514,7 @@ export async function updateOrganization(id: string, name: string, order: number
 export async function deleteOrganization(id: string) {
     try {
         await (prisma as any).organization.delete({ where: { id } });
-        revalidatePath('/admin/organizational-status');
+        revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "Organization deleted successfully" };
     } catch (error) {
         return { success: false, error: "Failed to delete organization" };

@@ -1,15 +1,84 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { uploadMasterDatabase, resetSystem } from '../actions';
+import { Input } from "@/components/ui/input";
+import {
+    uploadMasterDatabase,
+    resetSystem,
+    getMasterEmployees,
+    updateMasterEmployee,
+    deleteMasterEmployee
+} from '../actions';
 import { toast } from "sonner";
-import { Loader2, Upload, Download, Trash2 } from "lucide-react";
+import {
+    Loader2,
+    Upload,
+    Download,
+    Trash2,
+    Search,
+    Edit,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+    MoreHorizontal,
+    Table as TableIcon
+} from "lucide-react";
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetFooter,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-export default function MasterDatabase({ data }: { data: any[] }) {
+export default function MasterDatabase({ initialData, initialMetadata }: { initialData: any[], initialMetadata: any }) {
+    const [data, setData] = useState(initialData);
+    const [metadata, setMetadata] = useState(initialMetadata);
     const [isUploading, setIsUploading] = useState(false);
     const [isResetting, setIsResetting] = useState(false);
+    const [search, setSearch] = useState("");
+    const [page, setPage] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState<any>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
+
+    const fetchData = useCallback(async (p: number, s: string) => {
+        setIsLoading(true);
+        const result = await getMasterEmployees(p, 50, s);
+        if (result.success) {
+            setData(result.data!);
+            setMetadata(result.metadata);
+        }
+        setIsLoading(false);
+    }, []);
+
+    // Debounced search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setPage(1);
+            fetchData(1, search);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [search, fetchData]);
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+        fetchData(newPage, search);
+    };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files?.[0]) return;
@@ -21,10 +90,12 @@ export default function MasterDatabase({ data }: { data: any[] }) {
         const result = await uploadMasterDatabase(formData);
         if (result.success) {
             toast.success(result.message);
+            fetchData(1, search);
         } else {
             toast.error(result.error);
         }
-        setIsUploading(false);
+        setIsUploading(true); // Keep it true briefly to show loading
+        setTimeout(() => setIsUploading(false), 500);
         e.target.value = ''; // Reset input
     };
 
@@ -35,118 +106,413 @@ export default function MasterDatabase({ data }: { data: any[] }) {
         const result = await resetSystem();
         if (result.success) {
             toast.success(result.message);
+            setData([]);
+            setMetadata({ total: 0, page: 1, limit: 50, totalPages: 0 });
         } else {
             toast.error(result.error);
         }
         setIsResetting(false);
     };
 
+    const handleUpdate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingEmployee) return;
+
+        setIsUpdating(true);
+        const result = await updateMasterEmployee(editingEmployee.id, editingEmployee);
+        if (result.success) {
+            toast.success("Employee updated successfully");
+            setEditingEmployee(null);
+            fetchData(page, search);
+        } else {
+            toast.error(result.error);
+        }
+        setIsUpdating(false);
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this record?")) return;
+        const result = await deleteMasterEmployee(id);
+        if (result.success) {
+            toast.success("Employee deleted successfully");
+            fetchData(page, search);
+        } else {
+            toast.error(result.error);
+        }
+    };
+
     const handleExport = () => {
-        const headers = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ"];
+        // Prepare headers
+        const coreHeaders = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ", "Gender", "DOB", "Email", "Phone"];
+
+        // Find all dynamic headers from current data
+        const dynamicHeaders = new Set<string>();
+        data.forEach(emp => {
+            if (emp.additionalData) {
+                try {
+                    const extra = JSON.parse(emp.additionalData);
+                    Object.keys(extra).forEach(k => dynamicHeaders.add(k));
+                } catch (e) { }
+            }
+        });
+
+        const allHeaders = [...coreHeaders, ...Array.from(dynamicHeaders)];
+
         const csvContent = [
-            headers.join(","),
-            ...data.map(emp => [
-                emp.uniqueId,
-                `"${emp.name}"`,
-                `"${emp.organizationName}"`,
-                emp.employmentStatus,
-                `"${emp.branch}"`,
-                `"${emp.designation}"`,
-                emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : ''
-            ].join(","))
+            allHeaders.join(","),
+            ...data.map(emp => {
+                const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                const coreValues = [
+                    emp.uniqueId,
+                    `"${emp.name}"`,
+                    `"${emp.organizationName}"`,
+                    emp.employmentStatus,
+                    `"${emp.branch}"`,
+                    `"${emp.designation}"`,
+                    emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '',
+                    emp.gender || '',
+                    emp.dob ? new Date(emp.dob).toLocaleDateString() : '',
+                    emp.email || '',
+                    emp.phone || ''
+                ];
+                const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
+                return [...coreValues, ...dynamicValues].join(",");
+            })
         ].join("\n");
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", "master_hr_database.csv");
+        link.setAttribute("download", `master_hr_database_page_${page}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     };
 
+    // Calculate dynamic headers for display
+    const visibleDynamicHeaders = useMemo(() => {
+        const headers = new Set<string>();
+        data.forEach(emp => {
+            if (emp.additionalData) {
+                try {
+                    const extra = JSON.parse(emp.additionalData);
+                    Object.keys(extra).forEach(k => headers.add(k));
+                } catch (e) { }
+            }
+        });
+        return Array.from(headers);
+    }, [data]);
+
     return (
-        <Card className="w-full mb-8">
-            <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Master HR Database ({data.length} Employees)</CardTitle>
-                <div className="flex gap-2">
-                    <div className="relative">
-                        <input
-                            type="file"
-                            accept=".xlsx, .xls"
-                            onChange={handleFileUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            disabled={isUploading}
-                        />
-                        <Button variant="outline" disabled={isUploading}>
-                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            Import Excel
+        <Card className="w-full shadow-lg border-t-4 border-t-primary">
+            <CardHeader className="space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <CardTitle className="text-2xl flex items-center gap-2">
+                            <TableIcon className="h-6 w-6 text-primary" />
+                            Master HR Database
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Showing {metadata.total > 0 ? (page - 1) * metadata.limit + 1 : 0} to {Math.min(page * metadata.limit, metadata.total)} of {metadata.total} entries
+                        </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <div className="relative group">
+                            <input
+                                type="file"
+                                accept=".xlsx, .xls"
+                                onChange={handleFileUpload}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                disabled={isUploading}
+                            />
+                            <Button variant="outline" className="group-hover:bg-primary group-hover:text-white transition-colors" disabled={isUploading}>
+                                {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                                Import Excel
+                            </Button>
+                        </div>
+                        <Button variant="outline" onClick={handleExport} disabled={data.length === 0}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export Page
+                        </Button>
+                        <Button variant="destructive" onClick={handleReset} disabled={isResetting}>
+                            {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Reset
                         </Button>
                     </div>
-                    <Button variant="outline" onClick={handleExport}>
-                        <Download className="mr-2 h-4 w-4" />
-                        Export
-                    </Button>
-                    <Button variant="destructive" onClick={handleReset} disabled={isResetting}>
-                        {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Reset System
-                    </Button>
+                </div>
+
+                <div className="flex items-center gap-2 max-w-md bg-muted px-3 py-1 rounded-full border focus-within:ring-2 focus-within:ring-primary transition-all">
+                    <Search className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by Name, ID, Organization, Branch..."
+                        className="border-none bg-transparent focus-visible:ring-0 px-0 h-8"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                 </div>
             </CardHeader>
-            <CardContent>
-                <div className="rounded-md border overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="bg-muted/50 text-muted-foreground">
-                            <tr>
-                                <th className="p-3 font-medium">Unique ID</th>
-                                <th className="p-3 font-medium">Name</th>
-                                <th className="p-3 font-medium">Organization</th>
-                                <th className="p-3 font-medium">Status</th>
-                                <th className="p-3 font-medium">Branch</th>
-                                <th className="p-3 font-medium">Designation</th>
-                                <th className="p-3 font-medium">DOJ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.length === 0 ? (
+            <CardContent className="p-0 sm:p-6">
+                <div className="relative overflow-hidden rounded-xl border bg-card">
+                    <div className="max-h-[600px] overflow-auto custom-scrollbar">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md border-b">
                                 <tr>
-                                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                                        No data found. Please import the Master HR Database.
-                                    </td>
+                                    <th className="p-4 font-bold text-primary w-[50px]">#</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Unique ID</th>
+                                    <th className="p-4 font-bold text-primary min-w-[150px]">Name</th>
+                                    <th className="p-4 font-bold text-primary min-w-[150px]">Organization</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Status</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Designation</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Branch</th>
+                                    <th className="p-4 font-bold text-primary min-w-[100px]">DOJ</th>
+                                    {/* Dynamic Headers */}
+                                    {visibleDynamicHeaders.map(header => (
+                                        <th key={header} className="p-4 font-bold text-primary min-w-[120px] bg-primary/5">
+                                            {header}
+                                        </th>
+                                    ))}
+                                    <th className="p-4 font-bold text-primary sticky right-0 bg-muted/80 backdrop-blur-md border-l w-[80px] text-center">Actions</th>
                                 </tr>
-                            ) : (
-                                data.slice(0, 100).map((emp) => (
-                                    <tr key={emp.id} className="border-t hover:bg-muted/50">
-                                        <td className="p-3">{emp.uniqueId}</td>
-                                        <td className="p-3 font-medium">{emp.name}</td>
-                                        <td className="p-3">{emp.organizationName}</td>
-                                        <td className="p-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-success/10 text-success' :
-                                                    emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-warning/10 text-warning' :
-                                                        'bg-muted/50 text-muted-foreground'
-                                                }`}>
-                                                {emp.employmentStatus}
-                                            </span>
+                            </thead>
+                            <tbody className="divide-y">
+                                {isLoading ? (
+                                    <tr>
+                                        <td colSpan={visibleDynamicHeaders.length + 9} className="p-20 text-center">
+                                            <div className="flex flex-col items-center gap-4">
+                                                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                                <p className="text-lg font-medium animate-pulse">Loading employee data...</p>
+                                            </div>
                                         </td>
-                                        <td className="p-3">{emp.branch}</td>
-                                        <td className="p-3">{emp.designation}</td>
-                                        <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
                                     </tr>
-                                ))
-                            )}
-                            {data.length > 100 && (
-                                <tr>
-                                    <td colSpan={7} className="p-3 text-center text-muted-foreground text-xs">
-                                        Showing first 100 of {data.length} records
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                ) : data.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={visibleDynamicHeaders.length + 9} className="p-20 text-center text-muted-foreground italic">
+                                            No employee records found matching your search.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    data.map((emp, index) => {
+                                        const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                                        return (
+                                            <tr key={emp.id} className="group border-b hover:bg-muted/50 transition-colors">
+                                                <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
+                                                <td className="p-4 font-mono text-xs">{emp.uniqueId}</td>
+                                                <td className="p-4">
+                                                    <div className="font-semibold text-primary">{emp.name}</div>
+                                                    <div className="text-[10px] text-muted-foreground">{emp.email || '-'}</div>
+                                                </td>
+                                                <td className="p-4">{emp.organizationName}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-green-100 text-green-700' :
+                                                            emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-amber-100 text-amber-700' :
+                                                                'bg-slate-100 text-slate-700'
+                                                        }`}>
+                                                        {emp.employmentStatus}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4">{emp.designation}</td>
+                                                <td className="p-4">{emp.branch}</td>
+                                                <td className="p-4 text-muted-foreground">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+
+                                                {/* Dynamic Data Cells */}
+                                                {visibleDynamicHeaders.map(header => (
+                                                    <td key={header} className="p-4 text-muted-foreground border-l border-primary/5">
+                                                        {extraData[header] || '-'}
+                                                    </td>
+                                                ))}
+
+                                                <td className="p-4 sticky right-0 bg-card group-hover:bg-muted/50 border-l text-center">
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => setEditingEmployee(emp)}>
+                                                                <Edit className="mr-2 h-4 w-4" /> Edit Record
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(emp.id)}>
+                                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
+                {/* Pagination */}
+                {metadata.totalPages > 1 && (
+                    <div className="flex items-center justify-between py-6">
+                        <div className="hidden sm:block text-sm text-muted-foreground font-medium">
+                            Rows per page: {metadata.limit}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(page - 1)}
+                                disabled={page === 1 || isLoading}
+                                className="h-9 px-4"
+                            >
+                                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                            </Button>
+
+                            <div className="flex items-center gap-1 mx-2">
+                                <span className="text-sm font-bold text-primary">Page {page}</span>
+                                <span className="text-sm text-muted-foreground">of {metadata.totalPages}</span>
+                            </div>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handlePageChange(page + 1)}
+                                disabled={page === metadata.totalPages || isLoading}
+                                className="h-9 px-4"
+                            >
+                                Next <ChevronRight className="h-4 w-4 ml-1" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
+
+            {/* Edit Employee Sheet */}
+            <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+                <SheetContent className="sm:max-w-xl overflow-y-auto">
+                    <SheetHeader className="border-b pb-4 mb-6">
+                        <SheetTitle className="text-2xl font-bold flex items-center gap-2">
+                            <Edit className="h-6 w-6 text-primary" />
+                            Edit Employee Details
+                        </SheetTitle>
+                        <SheetDescription>
+                            Modify information for {editingEmployee?.name}. Changes will be saved directly to the Master Database.
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    {editingEmployee && (
+                        <form onSubmit={handleUpdate} className="space-y-8 pb-10">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</Label>
+                                    <Input
+                                        value={editingEmployee.name || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, name: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Unique ID</Label>
+                                    <Input
+                                        value={editingEmployee.uniqueId || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, uniqueId: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Organization</Label>
+                                    <Input
+                                        value={editingEmployee.organizationName || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, organizationName: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</Label>
+                                    <Input
+                                        value={editingEmployee.employmentStatus || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, employmentStatus: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Designation</Label>
+                                    <Input
+                                        value={editingEmployee.designation || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, designation: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Branch</Label>
+                                    <Input
+                                        value={editingEmployee.branch || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, branch: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</Label>
+                                    <Input
+                                        type="email"
+                                        value={editingEmployee.email || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, email: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone</Label>
+                                    <Input
+                                        value={editingEmployee.phone || ''}
+                                        onChange={e => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
+                                        className="h-11 focus:ring-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Dynamic Fields */}
+                            {(() => {
+                                const extra = editingEmployee.additionalData ? JSON.parse(editingEmployee.additionalData) : {};
+                                if (Object.keys(extra).length === 0) return null;
+
+                                return (
+                                    <div className="pt-6 border-t">
+                                        <h3 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2">
+                                            <Filter className="h-4 w-4" />
+                                            Additional Info (Dynamic)
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                            {Object.keys(extra).map(key => (
+                                                <div key={key} className="space-y-2">
+                                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{key}</Label>
+                                                    <Input
+                                                        value={extra[key] || ''}
+                                                        onChange={e => {
+                                                            const newExtra = { ...extra, [key]: e.target.value };
+                                                            setEditingEmployee({ ...editingEmployee, additionalData: JSON.stringify(newExtra) });
+                                                        }}
+                                                        className="h-11 border-dashed border-primary/40 focus:ring-primary"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
+                            <SheetFooter className="pt-8 border-t sticky bottom-0 bg-background pb-6">
+                                <Button type="button" variant="outline" onClick={() => setEditingEmployee(null)} className="h-11 px-8">
+                                    Cancel
+                                </Button>
+                                <Button type="submit" className="h-11 px-10 font-bold" disabled={isUpdating}>
+                                    {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                    Save Changes
+                                </Button>
+                            </SheetFooter>
+                        </form>
+                    )}
+                </SheetContent>
+            </Sheet>
         </Card>
     );
 }
