@@ -18,6 +18,18 @@ interface OrgComparisonProps {
     organizations: Organization[];
 }
 
+// Helper for DD-MMM-YY
+const formatDate = (date: any) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = months[d.getMonth()];
+    const year = String(d.getFullYear()).slice(-2);
+    return `${day}-${month}-${year}`;
+};
+
 export default function OrgComparison({ organizations }: OrgComparisonProps) {
     const [activeOrg, setActiveOrg] = useState(organizations[0]?.name || '');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -81,9 +93,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
     const getAnalyserName = (name: string) => {
         const lower = name.toLowerCase();
-        if (lower.includes('trucking')) return `${name} Analyser`;
-        if (lower.includes('terrago')) return `Autobahn Trucking Analyser`;
-        if (lower.includes('mumbai')) return `Autobahn Trucking Mumbai Analyser`;
+        if (lower.includes('trucking')) return `Autobahn Trucking Analyser`;
+        if (lower.includes('terrago')) return `Autobahn TerraGo Analyser`;
+        if (lower.includes('mumbai')) return `Autobahn VoltiGo Mumbai Analyser`;
         if (lower.includes('ambegaon')) return `Autobahn VoltiGo Ambegaon Analyser`;
         return `${name} Analyser`;
     };
@@ -183,7 +195,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     <td className="p-3">{emp.employeeId || '-'}</td>
                                                                     <td className="p-3 font-semibold text-primary">{emp.name}</td>
                                                                     <td className="p-3">{activeOrg}</td>
-                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
                                                                     <td className="p-3">{emp.branch}</td>
                                                                     <td className="p-3">{emp.designation}</td>
                                                                     <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>
@@ -247,7 +259,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     <td className="p-3">{emp.employeeId || '-'}</td>
                                                                     <td className="p-3 font-semibold text-primary">{emp.name}</td>
                                                                     <td className="p-3">{emp.organizationName}</td>
-                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
                                                                     <td className="p-3">{emp.branch}</td>
                                                                     <td className="p-3">{emp.designation}</td>
                                                                     <td className="p-3 text-xs font-bold uppercase">{emp.employmentStatus}</td>
@@ -323,7 +335,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     <td className="p-3">{emp.employeeId || '-'}</td>
                                                                     <td className="p-3 font-semibold text-primary">{emp.name}</td>
                                                                     <td className="p-3">{activeOrg}</td>
-                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
                                                                     <td className="p-3">{emp.branch}</td>
                                                                     <td className="p-3">{emp.designation}</td>
                                                                     <td className="p-3 text-xs font-bold uppercase">
@@ -395,7 +407,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                         <ArrowRight className="inline mx-2 h-3 w-3" />
                                                                         <span className="font-bold">{emp.newOrg}</span>
                                                                     </td>
-                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
                                                                     <td className="p-3">{emp.branch}</td>
                                                                     <td className="p-3">{emp.designation}</td>
                                                                     <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>

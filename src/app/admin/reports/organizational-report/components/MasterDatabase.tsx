@@ -44,6 +44,21 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { RefreshCw, Zap } from "lucide-react";
+
+// Helper for DD-MMM-YY
+const formatDate = (date: any) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = months[d.getMonth()];
+    const year = String(d.getFullYear()).slice(-2);
+
+    return `${day}-${month}-${year}`;
+};
 
 export default function MasterDatabase({ initialData, initialMetadata }: { initialData: any[], initialMetadata: any }) {
     const [data, setData] = useState(initialData);
@@ -145,7 +160,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         // Prepare headers
         const coreHeaders = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ"];
 
-        // Find all dynamic headers from current data
+        // Find all dynamic headers from current visible data
         const dynamicHeaders = new Set<string>();
         data.forEach(emp => {
             if (emp.additionalData) {
@@ -159,7 +174,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         const allHeaders = [...coreHeaders, ...Array.from(dynamicHeaders)];
 
         const csvContent = [
-            allHeaders.join(","),
+            allHeaders.map(h => `"${h}"`).join(","),
             ...data.map(emp => {
                 const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
                 const coreValues = [
@@ -169,7 +184,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                     emp.employmentStatus,
                     `"${emp.branch}"`,
                     `"${emp.designation}"`,
-                    emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : ''
+                    formatDate(emp.dateOfJoining)
                 ];
                 const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
                 return [...coreValues, ...dynamicValues].join(",");
@@ -180,11 +195,12 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
         link.setAttribute("href", url);
-        link.setAttribute("download", `master_hr_database_page_${page}.csv`);
+        link.setAttribute("download", `master_hr_database_extract.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        toast.success("Current view extracted successfully");
     };
 
     // Calculate dynamic headers for display
@@ -231,6 +247,10 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                         <Button variant="outline" onClick={handleExport} disabled={data.length === 0}>
                             <Download className="mr-2 h-4 w-4" />
                             Export Page
+                        </Button>
+                        <Button variant="outline" onClick={() => fetchData(page, search)} disabled={isLoading}>
+                            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            Refresh
                         </Button>
                         <Button variant="destructive" onClick={handleReset} disabled={isResetting}>
                             {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
@@ -286,17 +306,25 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     </tr>
                                 ) : (
                                     data.map((emp, index) => {
+                                        const isNew = emp.createdAt && (new Date().getTime() - new Date(emp.createdAt).getTime() < 24 * 60 * 60 * 1000);
+                                        const isUpdated = emp.updatedAt && (new Date().getTime() - new Date(emp.updatedAt).getTime() < 24 * 60 * 60 * 1000) && !isNew;
                                         const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
                                         return (
-                                            <tr key={emp.id} className="group border-b hover:bg-muted/50 transition-colors">
+                                            <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : isUpdated ? 'bg-blue-50/50' : ''}`}>
                                                 <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
-                                                <td className="p-4 font-mono text-xs">{emp.uniqueId}</td>
+                                                <td className="p-4 font-mono text-xs">
+                                                    <div className="flex flex-col gap-1">
+                                                        {emp.uniqueId}
+                                                        {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
+                                                        {isUpdated && <span className="text-[8px] bg-blue-500 text-white px-1 rounded w-fit font-bold text-center">UPDATED / TRANSFERRED</span>}
+                                                    </div>
+                                                </td>
                                                 <td className="p-4 text-xs font-semibold">{emp.employeeId || '-'}</td>
                                                 <td className="p-4">
                                                     <div className="font-semibold text-primary">{emp.name}</div>
                                                 </td>
                                                 <td className="p-4 text-xs">{emp.organizationName}</td>
-                                                <td className="p-4 text-xs text-muted-foreground">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                <td className="p-4 text-xs text-muted-foreground">{formatDate(emp.dateOfJoining)}</td>
                                                 <td className="p-4 text-xs">{emp.branch}</td>
                                                 <td className="p-4 text-xs">{emp.designation}</td>
                                                 <td className="p-4">

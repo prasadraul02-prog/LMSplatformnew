@@ -351,8 +351,8 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         };
 
         const staff = parseSheet(staffSheetName, 'Active');
-        const trial = parseSheet(trialSheetName, 'Active');
-        const contract = parseSheet(contractSheetName, 'Active');
+        const trial = parseSheet(trialSheetName, 'Active - On Trial');
+        const contract = parseSheet(contractSheetName, 'Active - Contract');
 
         const allUploaded = [...staff, ...trial, ...contract];
         const uploadedIds = new Set(allUploaded.map(e => e.uniqueId));
@@ -387,11 +387,17 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         // 3. Status Change (On Trial -> Staff)
         for (const emp of staff) {
             const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.employmentStatus === 'On Trial') {
+            if (masterEmp && (masterEmp.employmentStatus === 'Active - On Trial' || masterEmp.employmentStatus === 'On Trial')) {
                 result.statusChanges.push({
                     ...emp,
-                    oldStatus: 'On Trial',
-                    newStatus: 'Permanent'
+                    oldStatus: masterEmp.employmentStatus,
+                    newStatus: 'Active'
+                });
+            } else if (masterEmp && (masterEmp.employmentStatus === 'Active - Contract' || masterEmp.employmentStatus === 'Contract')) {
+                result.statusChanges.push({
+                    ...emp,
+                    oldStatus: masterEmp.employmentStatus,
+                    newStatus: 'Active'
                 });
             }
         }
