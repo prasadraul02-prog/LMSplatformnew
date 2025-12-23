@@ -77,6 +77,15 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         setIsApplying(false);
     };
 
+    const getAnalyserName = (name: string) => {
+        const lower = name.toLowerCase();
+        if (lower.includes('trucking')) return `${name} Analyser`;
+        if (lower.includes('terrago')) return `Autobahn Trucking Analyser`;
+        if (lower.includes('mumbai')) return `Autobahn Trucking Mumbai Analyser`;
+        if (lower.includes('ambegaon')) return `Autobahn VoltiGo Ambegaon Analyser`;
+        return `${name} Analyser`;
+    };
+
     if (organizations.length === 0) {
         return (
             <Card>
@@ -89,7 +98,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Organization-wise Options</h2>
+            <h2 className="text-2xl font-bold">Organizational Analyser</h2>
             <Tabs value={activeOrg} onValueChange={setActiveOrg} className="w-full">
                 <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
                     {organizations.map(org => (
@@ -98,7 +107,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                             value={org.name}
                             className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background"
                         >
-                            {org.name}
+                            {getAnalyserName(org.name)}
                         </TabsTrigger>
                     ))}
                 </TabsList>
@@ -107,7 +116,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                     <TabsContent key={org.id} value={org.name} className="mt-6 space-y-6">
                         <Card>
                             <CardHeader>
-                                <CardTitle>{org.name} - Employee Management</CardTitle>
+                                <CardTitle>{getAnalyserName(org.name)}</CardTitle>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/10">

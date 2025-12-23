@@ -88,7 +88,7 @@ export default async function OrganizationalStatusPage() {
                     <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
                         <div className="flex items-center gap-2 mb-6 ml-1">
                             <Filter className="h-6 w-6 text-primary" />
-                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Data Comparison & Sync</h2>
+                            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Organizational Analyser</h2>
                         </div>
                         <OrgComparison organizations={organizations || []} />
                     </section>

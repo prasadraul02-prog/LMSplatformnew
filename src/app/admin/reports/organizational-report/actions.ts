@@ -298,17 +298,22 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
             const keys = Object.keys(json[0] as object);
 
-            // Mapper helper
-            const mapColumn = (keywords: string[]) => keys.find(key =>
-                keywords.some(k => key.toLowerCase().includes(k))
-            );
+            // Mapper helper with dots/spaces cleaning
+            const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const mapColumn = (keywords: string[]) => {
+                const cleanKeywords = keywords.map(clean);
+                return keys.find(key => {
+                    const cleanKey = clean(key);
+                    return cleanKeywords.some(ck => cleanKey.includes(ck));
+                });
+            };
 
-            const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number', 'aadhaar']);
-            const colName = mapColumn(['name', 'employee name', 'full name', 'worker name', 'employee_name']);
-            const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id', 'employee_id', 'code']);
-            const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant']);
-            const colDesignation = mapColumn(['designation', 'role', 'position', 'job title', 'desig']);
-            const colDoj = mapColumn(['joining', 'doj', 'date of joining', 'joining date', 'date_of_joining']);
+            const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'idnumber', 'aadhaar']);
+            const colName = mapColumn(['name', 'employeename', 'fullname', 'workername', 'employee_name']);
+            const colEmpId = mapColumn(['employeeid', 'empid', 'regid', 'staffid', 'employee_id', 'code']);
+            const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant', 'unit']);
+            const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
+            const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
 
             if (!colUniqueId || !colName) return [];
