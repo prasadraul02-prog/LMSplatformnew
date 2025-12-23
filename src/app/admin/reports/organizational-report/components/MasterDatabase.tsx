@@ -143,7 +143,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
 
     const handleExport = () => {
         // Prepare headers
-        const coreHeaders = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ", "Gender", "DOB", "Email", "Phone"];
+        const coreHeaders = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ"];
 
         // Find all dynamic headers from current data
         const dynamicHeaders = new Set<string>();
@@ -169,11 +169,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                     emp.employmentStatus,
                     `"${emp.branch}"`,
                     `"${emp.designation}"`,
-                    emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '',
-                    emp.gender || '',
-                    emp.dob ? new Date(emp.dob).toLocaleDateString() : '',
-                    emp.email || '',
-                    emp.phone || ''
+                    emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : ''
                 ];
                 const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
                 return [...coreValues, ...dynamicValues].join(",");
@@ -301,7 +297,6 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                 <td className="p-4 font-mono text-xs">{emp.uniqueId}</td>
                                                 <td className="p-4">
                                                     <div className="font-semibold text-primary">{emp.name}</div>
-                                                    <div className="text-[10px] text-muted-foreground">{emp.email || '-'}</div>
                                                 </td>
                                                 <td className="p-4">{emp.organizationName}</td>
                                                 <td className="p-4">
