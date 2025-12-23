@@ -180,6 +180,7 @@ export async function uploadMasterDatabase(formData: FormData) {
                 designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
                 dateOfJoining: doj,
                 additionalData: JSON.stringify(additionalData),
+                createdAt: new Date('2000-01-01'), // Mark as legacy to avoid highlights
             });
         }
 
@@ -465,7 +466,10 @@ export async function applyChanges(changes: {
                 for (const emp of changes.statusChanges) {
                     await (tx as any).masterEmployee.update({
                         where: { uniqueId: emp.uniqueId },
-                        data: { employmentStatus: emp.newStatus }
+                        data: {
+                            employmentStatus: emp.newStatus,
+                            employeeId: emp.employeeId // Update ID during status transition
+                        }
                     });
                 }
             }
@@ -477,7 +481,8 @@ export async function applyChanges(changes: {
                         where: { uniqueId: emp.uniqueId },
                         data: {
                             organizationName: changes.orgName,
-                            employmentStatus: emp.status
+                            employmentStatus: emp.status,
+                            employeeId: emp.employeeId // Update ID during transfer
                         }
                     });
                 }
