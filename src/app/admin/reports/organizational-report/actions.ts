@@ -333,18 +333,9 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     additionalData['Mobile Number'] = String(row[colMobile]).trim();
                 }
 
-                // Parse DOJ
-                let doj: Date | null = null;
+                // Parse DOJ using robust helper
                 const rawDoj = colDoj ? row[colDoj] : null;
-                if (rawDoj) {
-                    const parsedDate = new Date(rawDoj);
-                    if (!isNaN(parsedDate.getTime())) {
-                        doj = parsedDate;
-                    } else if (typeof rawDoj === 'number') {
-                        // Handle Excel serial date
-                        doj = new Date(Math.round((rawDoj - 25569) * 86400 * 1000));
-                    }
-                }
+                const doj = rawDoj ? parseDate(rawDoj) : null;
 
                 return {
                     uniqueId: String(row[colUniqueId]).trim(),
