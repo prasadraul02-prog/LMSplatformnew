@@ -264,19 +264,14 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     <th className="p-4 font-bold text-primary min-w-[120px]">Branch</th>
                                     <th className="p-4 font-bold text-primary min-w-[120px]">Designation</th>
                                     <th className="p-4 font-bold text-primary min-w-[100px]">Status</th>
-                                    {/* Dynamic Headers */}
-                                    {visibleDynamicHeaders.map(header => (
-                                        <th key={header} className="p-4 font-bold text-primary min-w-[120px] bg-primary/5">
-                                            {header}
-                                        </th>
-                                    ))}
-                                    <th className="p-4 font-bold text-primary sticky right-0 bg-muted/80 backdrop-blur-md border-l w-[80px] text-center">Actions</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Mobile Number</th>
+                                    <th className="p-4 font-bold text-primary sticky right-0 bg-muted/80 backdrop-blur-md border-l w-[80px] text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={visibleDynamicHeaders.length + 9} className="p-20 text-center">
+                                        <td colSpan={11} className="p-20 text-center">
                                             <div className="flex flex-col items-center gap-4">
                                                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
                                                 <p className="text-lg font-medium animate-pulse">Loading employee data...</p>
@@ -285,7 +280,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     </tr>
                                 ) : data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={visibleDynamicHeaders.length + 9} className="p-20 text-center text-muted-foreground italic">
+                                        <td colSpan={11} className="p-20 text-center text-muted-foreground italic">
                                             No employee records found matching your search.
                                         </td>
                                     </tr>
@@ -312,13 +307,12 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                         {emp.employmentStatus}
                                                     </span>
                                                 </td>
-
-                                                {/* Dynamic Data Cells */}
-                                                {visibleDynamicHeaders.map(header => (
-                                                    <td key={header} className="p-4 text-muted-foreground border-l border-primary/5">
-                                                        {extraData[header] || '-'}
-                                                    </td>
-                                                ))}
+                                                <td className="p-4 text-xs font-semibold text-slate-600">
+                                                    {(() => {
+                                                        const m = Object.keys(extraData).find(k => ['mobile', 'phone', 'contact', 'tele'].some(kw => k.toLowerCase().includes(kw)));
+                                                        return m ? extraData[m] : '-';
+                                                    })()}
+                                                </td>
 
                                                 <td className="p-4 sticky right-0 bg-card group-hover:bg-muted/50 border-l text-center">
                                                     <DropdownMenu>
