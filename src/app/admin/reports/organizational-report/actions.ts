@@ -291,24 +291,56 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             return { success: false, error: "Could not detect Staff, Trial, or Contract sheets." };
         }
 
-        // Helper to parse sheet
         const parseSheet = (sheetName: string | undefined, status: string) => {
             if (!sheetName) return [];
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-            // Auto-detect unique ID column
             if (json.length === 0) return [];
+
             const keys = Object.keys(json[0] as object);
-            const colUniqueId = keys.find(key => ['unique', 'aadhar', 'uid', 'id number'].some(k => key.toLowerCase().includes(k)));
-            const colName = keys.find(key => ['name', 'employee name'].some(k => key.toLowerCase().includes(k)));
 
-            if (!colUniqueId) return [];
+            // Mapper helper
+            const mapColumn = (keywords: string[]) => keys.find(key =>
+                keywords.some(k => key.toLowerCase().includes(k))
+            );
 
-            return json.map((row: any) => ({
-                uniqueId: String(row[colUniqueId]).trim(),
-                name: colName ? row[colName] : 'Unknown',
-                status: status,
-                raw: row
-            })).filter(r => r.uniqueId);
+            const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number', 'aadhaar']);
+            const colName = mapColumn(['name', 'employee name', 'full name', 'worker name']);
+            const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id']);
+            const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant']);
+            const colDesignation = mapColumn(['designation', 'role', 'position', 'job title']);
+            const colDoj = mapColumn(['joining', 'doj', 'date of joining', 'joining date']);
+
+            if (!colUniqueId || !colName) return [];
+
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj].filter(Boolean) as string[]);
+
+            return json.map((row: any) => {
+                const additionalData: Record<string, any> = {};
+                keys.forEach(key => {
+                    if (!coreColsSet.has(key)) {
+                        additionalData[key] = row[key];
+                    }
+                });
+
+                // Parse DOJ
+                let doj: Date | null = null;
+                const rawDoj = colDoj ? row[colDoj] : null;
+                if (rawDoj) {
+                    const parsedDate = new Date(rawDoj);
+                    if (!isNaN(parsedDate.getTime())) doj = parsedDate;
+                }
+
+                return {
+                    uniqueId: String(row[colUniqueId]).trim(),
+                    name: String(row[colName] || 'Unknown'),
+                    employeeId: colEmpId ? String(row[colEmpId] || '') : null,
+                    branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
+                    designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
+                    dateOfJoining: doj,
+                    status: status,
+                    additionalData: JSON.stringify(additionalData)
+                };
+            }).filter(r => r.uniqueId);
         };
 
         const staff = parseSheet(staffSheetName, 'Permanent');
@@ -394,8 +426,11 @@ export async function applyChanges(changes: {
                             name: emp.name,
                             organizationName: changes.orgName,
                             employmentStatus: emp.status,
-                            branch: changes.orgName,
-                            designation: 'Unknown',
+                            employeeId: emp.employeeId,
+                            branch: emp.branch || changes.orgName,
+                            designation: emp.designation || 'Unknown',
+                            dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
+                            additionalData: emp.additionalData
                         }
                     });
                 }

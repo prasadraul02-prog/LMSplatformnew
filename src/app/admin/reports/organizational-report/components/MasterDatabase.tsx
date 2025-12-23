@@ -257,12 +257,13 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                 <tr>
                                     <th className="p-4 font-bold text-primary w-[50px]">#</th>
                                     <th className="p-4 font-bold text-primary min-w-[120px]">Unique ID</th>
-                                    <th className="p-4 font-bold text-primary min-w-[150px]">Name</th>
-                                    <th className="p-4 font-bold text-primary min-w-[150px]">Organization</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Status</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Designation</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Branch</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Employee ID</th>
+                                    <th className="p-4 font-bold text-primary min-w-[150px]">Employee Name</th>
+                                    <th className="p-4 font-bold text-primary min-w-[150px]">Department</th>
                                     <th className="p-4 font-bold text-primary min-w-[100px]">DOJ</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Branch</th>
+                                    <th className="p-4 font-bold text-primary min-w-[120px]">Designation</th>
+                                    <th className="p-4 font-bold text-primary min-w-[100px]">Status</th>
                                     {/* Dynamic Headers */}
                                     {visibleDynamicHeaders.map(header => (
                                         <th key={header} className="p-4 font-bold text-primary min-w-[120px] bg-primary/5">
@@ -295,10 +296,14 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                             <tr key={emp.id} className="group border-b hover:bg-muted/50 transition-colors">
                                                 <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
                                                 <td className="p-4 font-mono text-xs">{emp.uniqueId}</td>
+                                                <td className="p-4 text-xs font-semibold">{emp.employeeId || '-'}</td>
                                                 <td className="p-4">
                                                     <div className="font-semibold text-primary">{emp.name}</div>
                                                 </td>
-                                                <td className="p-4">{emp.organizationName}</td>
+                                                <td className="p-4 text-xs">{emp.organizationName}</td>
+                                                <td className="p-4 text-xs text-muted-foreground">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                <td className="p-4 text-xs">{emp.branch}</td>
+                                                <td className="p-4 text-xs">{emp.designation}</td>
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-green-100 text-green-700' :
                                                         emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-amber-100 text-amber-700' :
@@ -307,9 +312,6 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                         {emp.employmentStatus}
                                                     </span>
                                                 </td>
-                                                <td className="p-4">{emp.designation}</td>
-                                                <td className="p-4">{emp.branch}</td>
-                                                <td className="p-4 text-muted-foreground">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
 
                                                 {/* Dynamic Data Cells */}
                                                 {visibleDynamicHeaders.map(header => (
