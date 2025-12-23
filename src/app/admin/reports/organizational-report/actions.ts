@@ -113,18 +113,14 @@ export async function uploadMasterDatabase(formData: FormData) {
             return keys.find(key => keywords.some(k => key.toLowerCase().includes(k.toLowerCase())));
         };
 
-        const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number']);
-        const colOrgName = mapColumn(['organization', 'org', 'company']);
-        const colStatus = mapColumn(['status', 'employment', 'type']);
-        const colEmpId = mapColumn(['employee id', 'emp id', 'reg id']);
-        const colName = mapColumn(['name', 'employee name', 'full name']);
-        const colBranch = mapColumn(['branch', 'location', 'site']);
-        const colDesignation = mapColumn(['designation', 'role', 'position']);
-        const colDoj = mapColumn(['joining', 'doj', 'date of joining']);
-        const colGender = mapColumn(['gender', 'sex']);
-        const colDob = mapColumn(['dob', 'birth', 'date of birth']);
-        const colEmail = mapColumn(['email', 'mail']);
-        const colPhone = mapColumn(['phone', 'mobile', 'contact']);
+        const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number', 'aadhaar']);
+        const colOrgName = mapColumn(['organization', 'org', 'company', 'unit']);
+        const colStatus = mapColumn(['status', 'employment', 'type', 'state']);
+        const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id']);
+        const colName = mapColumn(['name', 'employee name', 'full name', 'worker name']);
+        const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant']);
+        const colDesignation = mapColumn(['designation', 'role', 'position', 'job title']);
+        const colDoj = mapColumn(['joining', 'doj', 'date of joining', 'joining date']);
 
         if (!colUniqueId || !colName) {
             return {
@@ -133,7 +129,7 @@ export async function uploadMasterDatabase(formData: FormData) {
             };
         }
 
-        const coreCols = [colUniqueId, colOrgName, colStatus, colEmpId, colName, colBranch, colDesignation, colDoj, colGender, colDob, colEmail, colPhone].filter(Boolean) as string[];
+        const coreCols = [colUniqueId, colOrgName, colStatus, colEmpId, colName, colBranch, colDesignation, colDoj].filter(Boolean) as string[];
 
         // Parse data using found headers
         const validRows: any[] = [];
@@ -183,10 +179,6 @@ export async function uploadMasterDatabase(formData: FormData) {
                 branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
                 designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
                 dateOfJoining: doj,
-                gender: colGender ? String(row[colGender] || '') : null,
-                dob: colDob ? parseDate(row[colDob]) : null,
-                email: colEmail ? String(row[colEmail] || '') : null,
-                phone: colPhone ? String(row[colPhone] || '') : null,
                 additionalData: JSON.stringify(additionalData),
             });
         }
@@ -230,7 +222,7 @@ export async function resetSystem() {
 export async function updateMasterEmployee(id: string, data: any) {
     try {
         // Separate core fields from additionalData
-        const coreFields = ['name', 'uniqueId', 'organizationName', 'employmentStatus', 'employeeId', 'branch', 'designation', 'dateOfJoining', 'gender', 'dob', 'email', 'phone'];
+        const coreFields = ['name', 'uniqueId', 'organizationName', 'employmentStatus', 'employeeId', 'branch', 'designation', 'dateOfJoining'];
         const updateData: any = {};
         const additionalData: any = {};
 

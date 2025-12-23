@@ -388,13 +388,8 @@ model MasterEmployee {
   designation       String
   dateOfJoining     DateTime?
   
-  // New fields for better visibility
-  gender            String?
-  dob               DateTime?
-  email             String?
-  phone             String?
-  
   // Dynamic columns stored as JSON string
+  // This satisfies the "No Fixed Columns" requirement by allowing any extra data
   additionalData    String?   @db.Text
   
   createdAt         DateTime  @default(now())

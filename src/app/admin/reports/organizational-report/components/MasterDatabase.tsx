@@ -306,8 +306,8 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                 <td className="p-4">{emp.organizationName}</td>
                                                 <td className="p-4">
                                                     <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase().includes('permanent') ? 'bg-green-100 text-green-700' :
-                                                            emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-amber-100 text-amber-700' :
-                                                                'bg-slate-100 text-slate-700'
+                                                        emp.employmentStatus.toLowerCase().includes('trial') ? 'bg-amber-100 text-amber-700' :
+                                                            'bg-slate-100 text-slate-700'
                                                         }`}>
                                                         {emp.employmentStatus}
                                                     </span>
@@ -451,26 +451,9 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                         className="h-11 focus:ring-primary"
                                     />
                                 </div>
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Email</Label>
-                                    <Input
-                                        type="email"
-                                        value={editingEmployee.email || ''}
-                                        onChange={e => setEditingEmployee({ ...editingEmployee, email: e.target.value })}
-                                        className="h-11 focus:ring-primary"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Phone</Label>
-                                    <Input
-                                        value={editingEmployee.phone || ''}
-                                        onChange={e => setEditingEmployee({ ...editingEmployee, phone: e.target.value })}
-                                        className="h-11 focus:ring-primary"
-                                    />
-                                </div>
                             </div>
 
-                            {/* Dynamic Fields */}
+                            {/* Dynamic Fields (All fields including DOB, Email, etc. will appear here automatically) */}
                             {(() => {
                                 const extra = editingEmployee.additionalData ? JSON.parse(editingEmployee.additionalData) : {};
                                 if (Object.keys(extra).length === 0) return null;
@@ -479,7 +462,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     <div className="pt-6 border-t">
                                         <h3 className="text-lg font-semibold mb-4 text-primary flex items-center gap-2">
                                             <Filter className="h-4 w-4" />
-                                            Additional Info (Dynamic)
+                                            Employee Attributes
                                         </h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                             {Object.keys(extra).map(key => (

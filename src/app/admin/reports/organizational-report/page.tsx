@@ -22,59 +22,62 @@ export default async function OrganizationalStatusPage() {
     const { data: organizations } = await getOrganizations();
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50/50">
-            {/* Header Area */}
-            <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b bg-white/80 backdrop-blur-md sticky top-0 z-30">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-2xl">
-                        <LayoutDashboard className="h-8 w-8 text-primary" />
+        <div className="flex flex-col min-h-screen bg-slate-50/30">
+            {/* Ultra-Compact Header */}
+            <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b bg-white sticky top-0 z-30 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-xl">
+                        <LayoutDashboard className="h-6 w-6 text-primary" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Organizational Status</h1>
-                        <p className="text-muted-foreground font-medium">
-                            Enterprise Master HR Database & Management
+                        <h1 className="text-xl font-bold tracking-tight text-slate-900">HR Master Database</h1>
+                        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                            Management & Analytics
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Card className="flex items-center gap-4 px-6 py-3 border-none bg-primary shadow-[0_8px_30px_rgb(0,0,0,0.12)] text-white">
-                        <Users className="h-8 w-8 opacity-80" />
-                        <div>
-                            <div className="text-2xl font-black">{metadata?.total || 0}</div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Total Employees</p>
-                        </div>
-                    </Card>
+                    {/* Compact Stat */}
+                    <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-lg border">
+                        <Users className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-bold">{metadata?.total || 0}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">Employees</span>
+                    </div>
 
-                    {/* Collapsible Settings Trigger */}
                     <Sheet>
                         <SheetTrigger asChild>
-                            <Button size="lg" variant="outline" className="h-[68px] px-6 gap-2 border-2 hover:bg-slate-100 transition-all font-bold">
-                                <Settings className="h-6 w-6 text-primary" />
-                                <span className="hidden sm:inline">Org Settings</span>
+                            <Button size="sm" variant="outline" className="gap-2 border-2 font-bold h-9">
+                                <Settings className="h-4 w-4 text-primary" />
+                                Config
                             </Button>
                         </SheetTrigger>
-                        <SheetContent className="sm:max-w-md overflow-y-auto bg-slate-50/95 backdrop-blur-sm">
+                        <SheetContent className="sm:max-w-md overflow-y-auto bg-slate-50">
                             <SheetHeader className="mb-6 border-b pb-4">
-                                <SheetTitle className="text-2xl font-bold flex items-center gap-2 text-primary">
-                                    <Settings className="h-6 w-6" />
-                                    Organization Config
+                                <SheetTitle className="text-xl font-bold flex items-center gap-2 text-primary">
+                                    <Settings className="h-5 w-5" />
+                                    System Settings
                                 </SheetTitle>
-                                <SheetDescription className="font-medium">
-                                    Manage your primary organizations and departments here. These are used to categorize the Master Database.
+                                <SheetDescription>
+                                    Manage organizations and system-wide HR settings.
                                 </SheetDescription>
                             </SheetHeader>
-                            <div className="py-2">
-                                <OrgSettings organizations={organizations || []} />
+                            <div className="space-y-6">
+                                <section>
+                                    <h3 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                        <Users className="h-4 w-4" /> Organizations
+                                    </h3>
+                                    <OrgSettings organizations={organizations || []} />
+                                </section>
                             </div>
                         </SheetContent>
                     </Sheet>
                 </div>
             </div>
 
-            <div className="p-6 md:p-8 space-y-12">
-                {/* Main Database Area - Full Width */}
-                <section className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 sm:p-6 space-y-8">
+                {/* Main Database - Takes focus */}
+                <section>
                     <MasterDatabase
                         initialData={masterEmployees || []}
                         initialMetadata={metadata || { total: 0, page: 1, limit: 50, totalPages: 0 }}
