@@ -146,23 +146,42 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                             <p className="mb-4 text-sm text-muted-foreground">
                                                 These employees are present in the uploaded sheet but NOT in the Master Database.
                                             </p>
-                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-muted sticky top-0">
+                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
+                                                <table className="w-full text-xs text-left">
+                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
                                                         <tr>
-                                                            <th className="p-2 text-left">Unique ID</th>
-                                                            <th className="p-2 text-left">Name</th>
-                                                            <th className="p-2 text-left">Status</th>
+                                                            <th className="p-3 font-bold border-b">Sr. No</th>
+                                                            <th className="p-3 font-bold border-b">Unique ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee Name</th>
+                                                            <th className="p-3 font-bold border-b">Organization</th>
+                                                            <th className="p-3 font-bold border-b">DOJ</th>
+                                                            <th className="p-3 font-bold border-b">Branch</th>
+                                                            <th className="p-3 font-bold border-b">Designation</th>
+                                                            <th className="p-3 font-bold border-b">Status</th>
+                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {comparisonResult.newEmployees.map((emp: any, i: number) => (
-                                                            <tr key={i} className="border-t">
-                                                                <td className="p-2">{emp.uniqueId}</td>
-                                                                <td className="p-2">{emp.name}</td>
-                                                                <td className="p-2">{emp.status}</td>
-                                                            </tr>
-                                                        ))}
+                                                        {comparisonResult.newEmployees.map((emp: any, i: number) => {
+                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                                                            return (
+                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
+                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
+                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
+                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
+                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
+                                                                    <td className="p-3">{activeOrg}</td>
+                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{emp.branch}</td>
+                                                                    <td className="p-3">{emp.designation}</td>
+                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>
+                                                                    <td className="p-3">
+                                                                        {extra['Mobile Number'] || '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -191,23 +210,45 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                             <p className="mb-4 text-sm text-muted-foreground">
                                                 These employees are in the Master Database for {org.name} but NOT in the uploaded sheet.
                                             </p>
-                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-muted sticky top-0">
+                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
+                                                <table className="w-full text-xs text-left">
+                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
                                                         <tr>
-                                                            <th className="p-2 text-left">Unique ID</th>
-                                                            <th className="p-2 text-left">Name</th>
-                                                            <th className="p-2 text-left">Designation</th>
+                                                            <th className="p-3 font-bold border-b">Sr. No</th>
+                                                            <th className="p-3 font-bold border-b">Unique ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee Name</th>
+                                                            <th className="p-3 font-bold border-b">Organization</th>
+                                                            <th className="p-3 font-bold border-b">DOJ</th>
+                                                            <th className="p-3 font-bold border-b">Branch</th>
+                                                            <th className="p-3 font-bold border-b">Designation</th>
+                                                            <th className="p-3 font-bold border-b">Status</th>
+                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {comparisonResult.resignedEmployees.map((emp: any, i: number) => (
-                                                            <tr key={i} className="border-t">
-                                                                <td className="p-2">{emp.uniqueId}</td>
-                                                                <td className="p-2">{emp.name}</td>
-                                                                <td className="p-2">{emp.designation}</td>
-                                                            </tr>
-                                                        ))}
+                                                        {comparisonResult.resignedEmployees.map((emp: any, i: number) => {
+                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                                                            return (
+                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
+                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
+                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
+                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
+                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
+                                                                    <td className="p-3">{emp.organizationName}</td>
+                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{emp.branch}</td>
+                                                                    <td className="p-3">{emp.designation}</td>
+                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.employmentStatus}</td>
+                                                                    <td className="p-3">
+                                                                        {(() => {
+                                                                            const m = Object.keys(extra).find(k => ['mobile', 'phone', 'contact', 'tele'].some(kw => k.toLowerCase().includes(kw)));
+                                                                            return m ? extra[m] : '-';
+                                                                        })()}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -231,23 +272,46 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                             <p className="mb-4 text-sm text-muted-foreground">
                                                 Employees moved from ON TRIAL to PERMANENT.
                                             </p>
-                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-muted sticky top-0">
+                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
+                                                <table className="w-full text-xs text-left">
+                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
                                                         <tr>
-                                                            <th className="p-2 text-left">Name</th>
-                                                            <th className="p-2 text-left">Old Status</th>
-                                                            <th className="p-2 text-left">New Status</th>
+                                                            <th className="p-3 font-bold border-b">Sr. No</th>
+                                                            <th className="p-3 font-bold border-b">Unique ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee Name</th>
+                                                            <th className="p-3 font-bold border-b">Organization</th>
+                                                            <th className="p-3 font-bold border-b">DOJ</th>
+                                                            <th className="p-3 font-bold border-b">Branch</th>
+                                                            <th className="p-3 font-bold border-b">Designation</th>
+                                                            <th className="p-3 font-bold border-b">Status</th>
+                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {comparisonResult.statusChanges.map((emp: any, i: number) => (
-                                                            <tr key={i} className="border-t">
-                                                                <td className="p-2">{emp.name}</td>
-                                                                <td className="p-2 text-destructive">{emp.oldStatus}</td>
-                                                                <td className="p-2 text-success">{emp.newStatus}</td>
-                                                            </tr>
-                                                        ))}
+                                                        {comparisonResult.statusChanges.map((emp: any, i: number) => {
+                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                                                            return (
+                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
+                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
+                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
+                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
+                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
+                                                                    <td className="p-3">{activeOrg}</td>
+                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{emp.branch}</td>
+                                                                    <td className="p-3">{emp.designation}</td>
+                                                                    <td className="p-3 text-xs font-bold uppercase">
+                                                                        <span className="text-destructive">{emp.oldStatus}</span>
+                                                                        <ArrowRight className="inline mx-2 h-3 w-3" />
+                                                                        <span className="text-success">{emp.newStatus}</span>
+                                                                    </td>
+                                                                    <td className="p-3">
+                                                                        {extra['Mobile Number'] || '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>
@@ -276,23 +340,46 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                             <p className="mb-4 text-sm text-muted-foreground">
                                                 Employees transferred from other organizations to {org.name}.
                                             </p>
-                                            <div className="max-h-60 overflow-y-auto border rounded-md mb-4">
-                                                <table className="w-full text-sm">
-                                                    <thead className="bg-muted sticky top-0">
+                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
+                                                <table className="w-full text-xs text-left">
+                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
                                                         <tr>
-                                                            <th className="p-2 text-left">Name</th>
-                                                            <th className="p-2 text-left">From</th>
-                                                            <th className="p-2 text-left">To</th>
+                                                            <th className="p-3 font-bold border-b">Sr. No</th>
+                                                            <th className="p-3 font-bold border-b">Unique ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee ID</th>
+                                                            <th className="p-3 font-bold border-b">Employee Name</th>
+                                                            <th className="p-3 font-bold border-b">Organization</th>
+                                                            <th className="p-3 font-bold border-b">DOJ</th>
+                                                            <th className="p-3 font-bold border-b">Branch</th>
+                                                            <th className="p-3 font-bold border-b">Designation</th>
+                                                            <th className="p-3 font-bold border-b">Status</th>
+                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        {comparisonResult.transfers.map((emp: any, i: number) => (
-                                                            <tr key={i} className="border-t">
-                                                                <td className="p-2">{emp.name}</td>
-                                                                <td className="p-2">{emp.oldOrg}</td>
-                                                                <td className="p-2 font-bold">{emp.newOrg}</td>
-                                                            </tr>
-                                                        ))}
+                                                        {comparisonResult.transfers.map((emp: any, i: number) => {
+                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                                                            return (
+                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
+                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
+                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
+                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
+                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
+                                                                    <td className="p-3">
+                                                                        <span className="text-muted-foreground">{emp.oldOrg}</span>
+                                                                        <ArrowRight className="inline mx-2 h-3 w-3" />
+                                                                        <span className="font-bold">{emp.newOrg}</span>
+                                                                    </td>
+                                                                    <td className="p-3">{emp.dateOfJoining ? new Date(emp.dateOfJoining).toLocaleDateString() : '-'}</td>
+                                                                    <td className="p-3">{emp.branch}</td>
+                                                                    <td className="p-3">{emp.designation}</td>
+                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>
+                                                                    <td className="p-3">
+                                                                        {extra['Mobile Number'] || '-'}
+                                                                    </td>
+                                                                </tr>
+                                                            );
+                                                        })}
                                                     </tbody>
                                                 </table>
                                             </div>

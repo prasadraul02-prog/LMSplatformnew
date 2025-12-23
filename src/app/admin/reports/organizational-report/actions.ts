@@ -304,15 +304,16 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             );
 
             const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number', 'aadhaar']);
-            const colName = mapColumn(['name', 'employee name', 'full name', 'worker name']);
-            const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id']);
+            const colName = mapColumn(['name', 'employee name', 'full name', 'worker name', 'employee_name']);
+            const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id', 'employee_id', 'code']);
             const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant']);
-            const colDesignation = mapColumn(['designation', 'role', 'position', 'job title']);
-            const colDoj = mapColumn(['joining', 'doj', 'date of joining', 'joining date']);
+            const colDesignation = mapColumn(['designation', 'role', 'position', 'job title', 'desig']);
+            const colDoj = mapColumn(['joining', 'doj', 'date of joining', 'joining date', 'date_of_joining']);
+            const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
 
             if (!colUniqueId || !colName) return [];
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj].filter(Boolean) as string[]);
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile].filter(Boolean) as string[]);
 
             return json.map((row: any) => {
                 const additionalData: Record<string, any> = {};
@@ -322,12 +323,22 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     }
                 });
 
+                // Mobile Number preservation
+                if (colMobile && row[colMobile]) {
+                    additionalData['Mobile Number'] = String(row[colMobile]).trim();
+                }
+
                 // Parse DOJ
                 let doj: Date | null = null;
                 const rawDoj = colDoj ? row[colDoj] : null;
                 if (rawDoj) {
                     const parsedDate = new Date(rawDoj);
-                    if (!isNaN(parsedDate.getTime())) doj = parsedDate;
+                    if (!isNaN(parsedDate.getTime())) {
+                        doj = parsedDate;
+                    } else if (typeof rawDoj === 'number') {
+                        // Handle Excel serial date
+                        doj = new Date(Math.round((rawDoj - 25569) * 86400 * 1000));
+                    }
                 }
 
                 return {
@@ -336,7 +347,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     employeeId: colEmpId ? String(row[colEmpId] || '') : null,
                     branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
                     designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
-                    dateOfJoining: doj,
+                    dateOfJoining: doj ? doj.toISOString() : null, // Stringify for transfer
                     status: status,
                     additionalData: JSON.stringify(additionalData)
                 };
