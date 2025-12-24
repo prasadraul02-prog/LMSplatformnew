@@ -9,7 +9,8 @@ import {
     resetSystem,
     getMasterEmployees,
     updateMasterEmployee,
-    deleteMasterEmployee
+    deleteMasterEmployee,
+    unhighlightAll
 } from '../actions';
 import { toast } from "sonner";
 import {
@@ -112,6 +113,21 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         setIsUploading(true); // Keep it true briefly to show loading
         setTimeout(() => setIsUploading(false), 500);
         e.target.value = ''; // Reset input
+    };
+
+    const [isUnhighlighting, setIsUnhighlighting] = useState(false);
+
+    const handleUnhighlight = async () => {
+        if (!confirm("Are you sure you want to clear all highlights? This cannot be undone.")) return;
+        setIsUnhighlighting(true);
+        const result = await unhighlightAll();
+        if (result.success) {
+            toast.success(result.message);
+            fetchData(page, search);
+        } else {
+            toast.error(result.error);
+        }
+        setIsUnhighlighting(false);
     };
 
     const handleReset = async () => {
@@ -248,6 +264,15 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                             <Download className="mr-2 h-4 w-4" />
                             Export Page
                         </Button>
+                        <Button
+                            variant="outline"
+                            onClick={handleUnhighlight}
+                            disabled={isUnhighlighting || isLoading}
+                            className="bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100"
+                        >
+                            <Zap className={`mr-2 h-4 w-4 ${isUnhighlighting ? 'animate-pulse' : ''}`} />
+                            Unhighlight Employees
+                        </Button>
                         <Button variant="outline" onClick={() => fetchData(page, search)} disabled={isLoading}>
                             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                             Refresh
@@ -310,13 +335,12 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                         const isUpdated = emp.updatedAt && (new Date().getTime() - new Date(emp.updatedAt).getTime() < 24 * 60 * 60 * 1000) && !isNew;
                                         const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
                                         return (
-                                            <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : isUpdated ? 'bg-blue-50/50' : ''}`}>
+                                            <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : ''}`}>
                                                 <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
                                                 <td className="p-4 font-mono text-xs">
                                                     <div className="flex flex-col gap-1">
                                                         {emp.uniqueId}
                                                         {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
-                                                        {isUpdated && <span className="text-[8px] bg-blue-500 text-white px-1 rounded w-fit font-bold text-center">UPDATED / TRANSFERRED</span>}
                                                     </div>
                                                 </td>
                                                 <td className="p-4 text-xs font-semibold">{emp.employeeId || '-'}</td>

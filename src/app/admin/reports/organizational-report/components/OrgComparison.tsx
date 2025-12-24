@@ -226,7 +226,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                         <CardHeader>
                                             <CardTitle className="flex items-center text-destructive">
                                                 <UserMinus className="mr-2 h-5 w-5" />
-                                                Potential Resignations ({comparisonResult.resignedEmployees.length})
+                                                Resigned Employees ({comparisonResult.resignedEmployees.length})
                                             </CardTitle>
                                         </CardHeader>
                                         <CardContent>
@@ -307,7 +307,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                         </CardHeader>
                                         <CardContent>
                                             <p className="mb-4 text-sm text-muted-foreground">
-                                                Employees moved from ON TRIAL to PERMANENT.
+                                                Employees changing status (e.g., Trial to Staff, Staff to Trial, or Contract to Staff).
                                             </p>
                                             <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
                                                 <table className="w-full text-xs text-left">

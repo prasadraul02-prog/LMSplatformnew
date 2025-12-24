@@ -11,6 +11,7 @@ export async function getMasterEmployees(page: number = 1, limit: number = 50, s
             OR: [
                 { name: { contains: search, mode: 'insensitive' as any } },
                 { uniqueId: { contains: search, mode: 'insensitive' as any } },
+                { employeeId: { contains: search, mode: 'insensitive' as any } },
                 { organizationName: { contains: search, mode: 'insensitive' as any } },
                 { branch: { contains: search, mode: 'insensitive' as any } },
                 { designation: { contains: search, mode: 'insensitive' as any } },
@@ -385,7 +386,6 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             }
         }
 
-        // 3. Status Change (On Trial -> Staff)
         for (const emp of staff) {
             const masterEmp = masterMap.get(emp.uniqueId);
             if (masterEmp && (masterEmp.employmentStatus === 'Active - On Trial' || masterEmp.employmentStatus === 'On Trial')) {
@@ -399,6 +399,18 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     ...emp,
                     oldStatus: masterEmp.employmentStatus,
                     newStatus: 'Active'
+                });
+            }
+        }
+
+        // 3b. Status Change (Staff -> On Trial)
+        for (const emp of trial) {
+            const masterEmp = masterMap.get(emp.uniqueId);
+            if (masterEmp && (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent')) {
+                result.statusChanges.push({
+                    ...emp,
+                    oldStatus: masterEmp.employmentStatus,
+                    newStatus: 'Active - On Trial'
                 });
             }
         }
@@ -574,5 +586,19 @@ export async function deleteOrganization(id: string) {
         return { success: true, message: "Organization deleted successfully" };
     } catch (error) {
         return { success: false, error: "Failed to delete organization" };
+    }
+}
+export async function unhighlightAll() {
+    try {
+        await (prisma as any).masterEmployee.updateMany({
+            data: {
+                createdAt: new Date('2000-01-01')
+            }
+        });
+        revalidatePath('/admin/reports/organizational-report');
+        return { success: true, message: "All employees unhighlighted successfully" };
+    } catch (error) {
+        console.error("Error unhighlighting employees:", error);
+        return { success: false, error: "Failed to unhighlight employees" };
     }
 }
