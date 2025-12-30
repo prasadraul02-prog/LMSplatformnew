@@ -1,12 +1,12 @@
-import type { NextWebVitalsMetric } from 'next/app';
 import { useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 // Web Vitals tracking
-export function reportWebVitals({ id, name, label, value }: NextWebVitalsMetric) {
+export function reportWebVitals(metric: any) {
+    const { id, name, label, value } = metric;
     // Send to analytics endpoint
-    if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', name, {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', name, {
             event_category: label === 'web-vital' ? 'Web Vitals' : 'Next.js custom metric',
             value: Math.round(name === 'CLS' ? value * 1000 : value),
             event_label: id,
@@ -84,34 +84,31 @@ export function useErrorTracking() {
 
 // Page view tracking
 export function usePageTracking() {
-    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
 
     useEffect(() => {
-        const handleRouteChange = (url: string) => {
-            // Track page views
-            if (typeof window !== 'undefined' && window.gtag) {
-                window.gtag('config', process.env.NEXT_PUBLIC_GA_ID || '', {
-                    page_path: url,
-                });
-            }
+        const url = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
 
-            // Send to analytics
-            fetch('/api/analytics/pageview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    url,
-                    referrer: document.referrer,
-                    timestamp: new Date().toISOString(),
-                }),
-            }).catch(console.error);
-        };
+        // Track page views in GA
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+            (window as any).gtag('config', process.env.NEXT_PUBLIC_GA_ID || '', {
+                page_path: url,
+            });
+        }
 
-        router.events.on('routeChangeComplete', handleRouteChange);
-        return () => {
-            router.events.off('routeChangeComplete', handleRouteChange);
-        };
-    }, [router.events]);
+        // Send to custom analytics API
+        fetch('/api/analytics/pageview', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                url,
+                referrer: typeof document !== 'undefined' ? document.referrer : '',
+                timestamp: new Date().toISOString(),
+            }),
+        }).catch(console.error);
+
+    }, [pathname, searchParams]);
 }
 
 // Performance monitoring hook
