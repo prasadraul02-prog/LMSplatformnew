@@ -334,6 +334,7 @@ type EnhancedComparisonResult = {
     resignations: any[];
     transfers: any[];
     employeeIdChanges: any[];
+    departmentMismatches: any[];
 };
 
 export async function compareOrgSheet(formData: FormData, orgName: string) {
@@ -453,7 +454,8 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             statusChanges: [],
             resignations: [],
             transfers: [],
-            employeeIdChanges: []
+            employeeIdChanges: [],
+            departmentMismatches: []
         };
 
         const currentOrgNormalized = orgName.toLowerCase().trim();
@@ -559,6 +561,22 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                         oldEmployeeId: masterEmp.employeeId
                     });
                 } else if (masterOrg === currentOrgNormalized) {
+
+                    // STRICT DEPARTMENT MATCHING
+                    // Only run if we actually have a department in the sheet
+                    if (sheetEmp.department && masterEmp.department) {
+                        // Must be EXACT match (Case & Spelling sensitive)
+                        if (sheetEmp.department !== masterEmp.department) {
+                            result.departmentMismatches.push({
+                                uniqueId: sheetEmp.uniqueId,
+                                name: sheetEmp.name,
+                                currentDepartment: masterEmp.department,
+                                newDepartment: sheetEmp.department,
+                                organization: orgName
+                            });
+                        }
+                    }
+
                     // Same Org -> Check Status Change
                     // Normalize statuses for comparison
                     const sheetStatus = sheetEmp.status.toLowerCase(); // 'staff', 'on trial', 'contract'

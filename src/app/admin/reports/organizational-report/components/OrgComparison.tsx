@@ -18,7 +18,10 @@ import {
     Info,
     MoveRight,
     Search,
-    FileSpreadsheet
+    FileSpreadsheet,
+    X,
+    XCircle,
+    Building2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -54,8 +57,8 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         if (organizations.length > 0 && !organizations.find(o => o.name === activeOrg)) {
             setActiveOrg(organizations[0].name);
         }
-        // Clear results when switching orgs to avoid confusion
-        setComparisonResult(null);
+        // MODIFIED: Do not clear results immediately on re-render to support persistence
+        // Only clear if activeOrg changes explicitly
     }, [organizations, activeOrg]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -106,16 +109,31 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         const result = await applyChanges(payload);
         if (result.success) {
             toast.success(result.message);
+            // PERSISTENCE FIX: Do NOT clear the other notifications. Only remove the processed items.
             setComparisonResult((prev: any) => {
                 if (!prev) return null;
                 const newState = { ...prev };
-                newState[type] = [];
+                // Remove the applied items from the pending list
+                const processedIds = new Set(items.map((i: any) => i.uniqueId));
+                newState[type] = newState[type].filter((i: any) => !processedIds.has(i.uniqueId));
                 return newState;
             });
         } else {
             toast.error(result.error);
         }
         setIsApplying(false);
+    };
+
+    const handleDismiss = (type: string, ids: string[]) => {
+        setComparisonResult((prev: any) => {
+            if (!prev) return null;
+            const newState = { ...prev };
+            const dismissIds = new Set(ids);
+            newState[type] = newState[type].filter((i: any) => !dismissIds.has(i.uniqueId));
+
+            toast.info(`${ids.length} notifications dismissed.`);
+            return newState;
+        });
     };
 
     if (organizations.length === 0) {
@@ -133,7 +151,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         comparisonResult.statusChanges.length +
         comparisonResult.resignations.length +
         comparisonResult.transfers.length +
-        comparisonResult.employeeIdChanges.length
+        comparisonResult.transfers.length +
+        comparisonResult.employeeIdChanges.length +
+        (comparisonResult.departmentMismatches?.length || 0)
     ) : 0;
 
     return (
@@ -226,6 +246,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <CardDescription>Detected {comparisonResult.newEmployees.length} employees not in Master HR Database.</CardDescription>
                                                     </div>
                                                 </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('newEmployees', comparisonResult.newEmployees.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
                                                 <Button size="sm" className="bg-green-600 hover:bg-green-700 font-bold whitespace-nowrap" onClick={() => handleApply('newEmployees', comparisonResult.newEmployees)} disabled={isApplying}>
                                                     Approve & Onboard All
                                                 </Button>
@@ -253,7 +276,10 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                             <td className="p-3">
                                                                 <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] px-1 uppercase">{emp.status}</Badge>
                                                             </td>
-                                                            <td className="p-3 text-right">
+                                                            <td className="p-3 text-right flex justify-end gap-2">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('newEmployees', [emp.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
                                                                 <Button size="sm" variant="outline" className="h-7 text-xs border-green-200 hover:bg-green-50 text-green-700" onClick={() => handleApply('newEmployees', [emp])} disabled={isApplying}>
                                                                     Add
                                                                 </Button>
@@ -280,6 +306,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <CardDescription>{comparisonResult.statusChanges.length} employees requiring status updates (Staff ↔ Trial ↔ Contract).</CardDescription>
                                                     </div>
                                                 </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('statusChanges', comparisonResult.statusChanges.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
                                                 <Button size="sm" className="bg-blue-600 hover:bg-blue-700 font-bold whitespace-nowrap" onClick={() => handleApply('statusChanges', comparisonResult.statusChanges)} disabled={isApplying}>
                                                     Confirm Transitions
                                                 </Button>
@@ -318,7 +347,10 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     </div>
                                                                 ) : <span className="text-slate-400 italic">No change</span>}
                                                             </td>
-                                                            <td className="p-3 text-right">
+                                                            <td className="p-3 text-right flex justify-end gap-2">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('statusChanges', [change.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
                                                                 <Button size="sm" variant="outline" className="h-7 text-xs border-blue-200 hover:bg-blue-50 text-blue-700" onClick={() => handleApply('statusChanges', [change])} disabled={isApplying}>
                                                                     Confirm
                                                                 </Button>
@@ -345,6 +377,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <CardDescription>Detected {comparisonResult.resignations.length} exits or discontinued trials.</CardDescription>
                                                     </div>
                                                 </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('resignations', comparisonResult.resignations.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
                                                 <Button variant="destructive" size="sm" className="font-bold whitespace-nowrap" onClick={() => handleApply('resignations', comparisonResult.resignations)} disabled={isApplying}>
                                                     Process Exits
                                                 </Button>
@@ -376,7 +411,10 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                 <div className="text-xs font-medium">{formatDate(exit.resignationDate)}</div>
                                                                 <div className="text-[10px] text-slate-500 italic truncate max-w-[150px]">{exit.remarks || '-'}</div>
                                                             </td>
-                                                            <td className="p-3 text-right">
+                                                            <td className="p-3 text-right flex justify-end gap-2">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('resignations', [exit.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
                                                                 <Button size="sm" variant="outline" className="h-7 text-xs border-red-200 hover:bg-red-50 text-red-700" onClick={() => handleApply('resignations', [exit])} disabled={isApplying}>
                                                                     Process
                                                                 </Button>
@@ -403,6 +441,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <CardDescription>{comparisonResult.transfers.length} movements across locations/companies.</CardDescription>
                                                     </div>
                                                 </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('transfers', comparisonResult.transfers.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
                                                 <Button size="sm" className="bg-purple-600 hover:bg-purple-700 font-bold whitespace-nowrap" onClick={() => handleApply('transfers', comparisonResult.transfers)} disabled={isApplying}>
                                                     Apply Transfers
                                                 </Button>
@@ -434,7 +475,10 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                 <Badge variant="outline" className="text-[9px] mt-1 p-0 px-1 border-purple-200">{t.transferType.replace(/_/g, ' ')}</Badge>
                                                             </td>
                                                             <td className="p-3 font-mono font-bold text-primary">{t.newEmployeeId || '-'}</td>
-                                                            <td className="p-3 text-right">
+                                                            <td className="p-3 text-right flex justify-end gap-2">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('transfers', [t.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
                                                                 <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 hover:bg-purple-50 text-purple-700" onClick={() => handleApply('transfers', [t])} disabled={isApplying}>
                                                                     Transfer
                                                                 </Button>
@@ -461,6 +505,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <CardDescription>{comparisonResult.employeeIdChanges.length} Registration/Employee ID discrepancies.</CardDescription>
                                                     </div>
                                                 </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('employeeIdChanges', comparisonResult.employeeIdChanges.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
                                                 <Button size="sm" className="bg-orange-600 hover:bg-orange-700 font-bold whitespace-nowrap" onClick={() => handleApply('employeeIdChanges', comparisonResult.employeeIdChanges)} disabled={isApplying}>
                                                     Sync All IDs
                                                 </Button>
@@ -486,9 +533,63 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     <span className="font-bold font-mono text-primary uppercase">{c.newEmployeeId}</span>
                                                                 </div>
                                                             </td>
-                                                            <td className="p-3 text-right">
+                                                            <td className="p-3 text-right flex justify-end gap-2">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('employeeIdChanges', [c.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
+                                                                </Button>
                                                                 <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 hover:bg-orange-50 text-orange-700" onClick={() => handleApply('employeeIdChanges', [c])} disabled={isApplying}>
                                                                     Sync
+                                                                </Button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Department Mismatches */}
+                                {comparisonResult.departmentMismatches && comparisonResult.departmentMismatches.length > 0 && (
+                                    <Card className="border-l-4 border-l-amber-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-amber-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-amber-100 rounded-lg">
+                                                        <Building2 className="h-5 w-5 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-amber-900">Department Name Mismatches</CardTitle>
+                                                        <CardDescription>Detected {comparisonResult.departmentMismatches.length} strict validation errors (Case/Spelling).</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('departmentMismatches', comparisonResult.departmentMismatches.map((e: any) => e.uniqueId))}>
+                                                    Dismiss All
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Master Record</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Sheet Value</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.departmentMismatches.map((m: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3">
+                                                                <div className="font-bold text-slate-900">{m.name}</div>
+                                                                <div className="text-[10px] font-mono text-muted-foreground">{m.uniqueId}</div>
+                                                            </td>
+                                                            <td className="p-3 text-slate-500 line-through">{m.currentDepartment}</td>
+                                                            <td className="p-3 font-bold text-amber-600 bg-amber-50 inline-block rounded px-1">{m.newDepartment}</td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => handleDismiss('departmentMismatches', [m.uniqueId])}>
+                                                                    <X className="h-4 w-4" />
                                                                 </Button>
                                                             </td>
                                                         </tr>
