@@ -10,7 +10,8 @@ import {
     getMasterEmployees,
     updateMasterEmployee,
     deleteMasterEmployee,
-    unhighlightAll
+    unhighlightAll,
+    getColumnOrder
 } from '../actions';
 import { toast } from "sonner";
 import {
@@ -71,6 +72,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
     const [isLoading, setIsLoading] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<any>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+    const [columnOrder, setColumnOrder] = useState<string[]>([]);
 
     const fetchData = useCallback(async (p: number, s: string) => {
         setIsLoading(true);
@@ -82,6 +84,13 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         setIsLoading(false);
     }, []);
 
+    const fetchColumnOrder = useCallback(async () => {
+        const result = await getColumnOrder();
+        if (result.success && result.data) {
+            setColumnOrder(result.data);
+        }
+    }, []);
+
     // Debounced search
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -90,6 +99,11 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         }, 500);
         return () => clearTimeout(timer);
     }, [search, fetchData]);
+
+    // Fetch column order on mount
+    useEffect(() => {
+        fetchColumnOrder();
+    }, [fetchColumnOrder]);
 
     const handlePageChange = (newPage: number) => {
         setPage(newPage);
@@ -106,6 +120,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         const result = await uploadMasterDatabase(formData);
         if (result.success) {
             toast.success(result.message);
+            await fetchColumnOrder(); // Fetch new column order
             fetchData(1, search);
         } else {
             toast.error(result.error);
@@ -173,47 +188,45 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
     };
 
     const handleExport = () => {
-        // Collect all possible headers from the current data
-        const coreColsMap: Record<string, string> = {
-            'uniqueId': 'Unique ID',
-            'employeeId': 'Employee ID',
-            'name': 'Employee Name',
-            'department': 'Department',
-            'dateOfJoining': 'DOJ',
-            'branch': 'Branch',
-            'designation': 'Designation',
-            'employmentStatus': 'Status'
-        };
+        // Use column order if available, otherwise fallback to original logic
+        const allHeaders = columnOrder.length > 0 ? columnOrder : (() => {
+            const coreColsMap: Record<string, string> = {
+                'uniqueId': 'Unique ID',
+                'employeeId': 'Employee ID',
+                'name': 'Employee Name',
+                'department': 'Department',
+                'dateOfJoining': 'DOJ',
+                'branch': 'Branch',
+                'designation': 'Designation',
+                'employmentStatus': 'Status'
+            };
 
-        const dynamicHeaders = new Set<string>();
-        data.forEach(emp => {
-            if (emp.additionalData) {
-                try {
-                    const extra = JSON.parse(emp.additionalData);
-                    Object.keys(extra).forEach(k => dynamicHeaders.add(k));
-                } catch (e) { }
-            }
-        });
+            const dynamicHeaders = new Set<string>();
+            data.forEach(emp => {
+                if (emp.additionalData) {
+                    try {
+                        const extra = JSON.parse(emp.additionalData);
+                        Object.keys(extra).forEach(k => dynamicHeaders.add(k));
+                    } catch (e) { }
+                }
+            });
 
-        const allHeaders = [
-            ...Object.values(coreColsMap),
-            ...Array.from(dynamicHeaders)
-        ];
+            return [
+                ...Object.values(coreColsMap),
+                ...Array.from(dynamicHeaders)
+            ];
+        })();
 
         const rows = data.map(emp => {
             const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-            const coreValues = [
-                emp.uniqueId,
-                emp.employeeId || '',
-                `"${emp.name}"`,
-                `"${emp.department || 'Unknown'}"`,
-                formatDate(emp.dateOfJoining),
-                `"${emp.branch}"`,
-                `"${emp.designation}"`,
-                emp.employmentStatus
-            ];
-            const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
-            return [...coreValues, ...dynamicValues].join(',');
+
+            return allHeaders.map(header => {
+                const value = getColumnValue(emp, header);
+                if (header === 'DOJ') {
+                    return formatDate(value);
+                }
+                return `"${value || ''}"`.replace(/"/g, '""'); // Escape quotes for CSV
+            }).join(',');
         });
 
         const csvContent = [allHeaders.join(','), ...rows].join('\n');
@@ -242,6 +255,82 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
         });
         return Array.from(headers);
     }, [data]);
+
+    // Helper to map column name to database field or additional data
+    const getColumnValue = (emp: any, columnName: string) => {
+        const coreFieldMap: Record<string, string> = {
+            'SR. No': 'srNo',
+            'SR No': 'srNo',
+            'Unique ID': 'uniqueId',
+            'Employee ID': 'employeeId',
+            'Employee Name': 'name',
+            'DOJ': 'dateOfJoining',
+            'Organization': 'organizationName',
+            'Department': 'department',
+            'Branch': 'branch',
+            'Designation': 'designation',
+            'Status': 'employmentStatus',
+            'Mobile Number': 'mobile'
+        };
+
+        const fieldName = coreFieldMap[columnName];
+        if (fieldName) {
+            // Special handling for SR. No
+            if (fieldName === 'srNo') {
+                return emp.srNo || ((page - 1) * metadata.limit + data.indexOf(emp) + 1);
+            }
+            // Special handling for mobile from additionalData
+            if (fieldName === 'mobile') {
+                const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+                return extraData['Mobile Number'] || '-';
+            }
+            return emp[fieldName];
+        }
+
+        // Check in additionalData
+        if (emp.additionalData) {
+            try {
+                const extra = JSON.parse(emp.additionalData);
+                return extra[columnName] || '-';
+            } catch (e) {
+                return '-';
+            }
+        }
+        return '-';
+    };
+
+    // Helper to format column value based on type
+    const formatColumnValue = (columnName: string, value: any, emp: any, index: number) => {
+        const isNew = emp.createdAt && (new Date().getTime() - new Date(emp.createdAt).getTime() < 24 * 60 * 60 * 1000);
+
+        if (columnName === 'Unique ID') {
+            return (
+                <div className="flex flex-col gap-1">
+                    <span className="font-mono text-xs">{value}</span>
+                    {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
+                </div>
+            );
+        } else if (columnName === 'Employee Name') {
+            return <div className="font-semibold text-primary">{value}</div>;
+        } else if (columnName === 'DOJ') {
+            return <span className="text-xs text-muted-foreground">{formatDate(value)}</span>;
+        } else if (columnName === 'Status') {
+            const statusLower = String(value).toLowerCase();
+            const isInactive = statusLower === 'deactive' || statusLower.includes('resigned') || statusLower.includes('terminated');
+            return (
+                <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${isInactive ? 'bg-slate-100 text-slate-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                    {isInactive ? 'DEACTIVE' : 'ACTIVE'}
+                </span>
+            );
+        } else if (columnName === 'SR. No' || columnName === 'SR No') {
+            return <span className="text-xs text-muted-foreground font-medium">{value}</span>;
+        } else if (columnName === 'Mobile Number') {
+            return <span className="text-xs font-semibold text-slate-600">{value}</span>;
+        } else {
+            return <span className="text-xs font-medium text-slate-700">{value || '-'}</span>;
+        }
+    };
 
     return (
         <Card className="w-full shadow-lg border-t-4 border-t-primary">
@@ -310,48 +399,54 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                         <table className="w-full text-sm text-left border-collapse">
                             <thead className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md border-b">
                                 <tr>
-                                    {(() => {
-                                        // Exactly match the user's screenshot order
-                                        const coreColsMap: Record<string, string> = {
-                                            'srNo': 'SR. No',
-                                            'uniqueId': 'Unique ID',
-                                            'employeeId': 'Employee ID',
-                                            'name': 'Employee Name',
-                                            'dateOfJoining': 'DOJ',
-                                            'organizationName': 'Organization',
-                                            'department': 'Department',
-                                            'branch': 'Branch',
-                                            'designation': 'Designation',
-                                            'employmentStatus': 'Status',
-                                            'mobile': 'Mobile Number'
-                                        };
-
-                                        // Identify all unique extra data keys (excluding those we've mapped to core)
-                                        const extraKeys = new Set<string>();
-                                        const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
-
-                                        data.forEach(emp => {
-                                            if (emp.additionalData) {
-                                                try {
-                                                    const extra = JSON.parse(emp.additionalData);
-                                                    Object.keys(extra).forEach(k => {
-                                                        if (!mappedValues.has(k)) {
-                                                            extraKeys.add(k);
-                                                        }
-                                                    });
-                                                } catch (e) { }
-                                            }
-                                        });
-
-                                        const dynamicHeaders = [
-                                            ...Object.values(coreColsMap),
-                                            ...Array.from(extraKeys)
-                                        ];
-
-                                        return dynamicHeaders.map(header => (
+                                    {columnOrder.length > 0 ? (
+                                        // Use dynamic column order from Excel
+                                        columnOrder.map(header => (
                                             <th key={header} className="p-4 font-bold text-primary min-w-[120px] whitespace-nowrap">{header}</th>
-                                        ));
-                                    })()}
+                                        ))
+                                    ) : (
+                                        // Fallback to original logic if no column order is saved
+                                        (() => {
+                                            const coreColsMap: Record<string, string> = {
+                                                'srNo': 'SR. No',
+                                                'uniqueId': 'Unique ID',
+                                                'employeeId': 'Employee ID',
+                                                'name': 'Employee Name',
+                                                'dateOfJoining': 'DOJ',
+                                                'organizationName': 'Organization',
+                                                'department': 'Department',
+                                                'branch': 'Branch',
+                                                'designation': 'Designation',
+                                                'employmentStatus': 'Status',
+                                                'mobile': 'Mobile Number'
+                                            };
+
+                                            const extraKeys = new Set<string>();
+                                            const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
+
+                                            data.forEach(emp => {
+                                                if (emp.additionalData) {
+                                                    try {
+                                                        const extra = JSON.parse(emp.additionalData);
+                                                        Object.keys(extra).forEach(k => {
+                                                            if (!mappedValues.has(k)) {
+                                                                extraKeys.add(k);
+                                                            }
+                                                        });
+                                                    } catch (e) { }
+                                                }
+                                            });
+
+                                            const dynamicHeaders = [
+                                                ...Object.values(coreColsMap),
+                                                ...Array.from(extraKeys)
+                                            ];
+
+                                            return dynamicHeaders.map(header => (
+                                                <th key={header} className="p-4 font-bold text-primary min-w-[120px] whitespace-nowrap">{header}</th>
+                                            ));
+                                        })()
+                                    )}
                                     <th className="p-4 font-bold text-primary sticky right-0 bg-muted/80 backdrop-blur-md border-l w-[80px] text-center">Action</th>
                                 </tr>
                             </thead>
@@ -374,78 +469,95 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                 ) : (
                                     data.map((emp, index) => {
                                         const isNew = emp.createdAt && (new Date().getTime() - new Date(emp.createdAt).getTime() < 24 * 60 * 60 * 1000);
-                                        const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-
-                                        const coreColsMap: Record<string, string> = {
-                                            'srNo': 'SR. No',
-                                            'uniqueId': 'Unique ID',
-                                            'employeeId': 'Employee ID',
-                                            'name': 'Employee Name',
-                                            'dateOfJoining': 'DOJ',
-                                            'organizationName': 'Organization',
-                                            'department': 'Department',
-                                            'branch': 'Branch',
-                                            'designation': 'Designation',
-                                            'employmentStatus': 'Status',
-                                            'mobile': 'Mobile Number'
-                                        };
-
-                                        const extraKeysList: string[] = [];
-                                        const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
-
-                                        data.forEach(e => {
-                                            if (e.additionalData) {
-                                                try {
-                                                    const extra = JSON.parse(e.additionalData);
-                                                    Object.keys(extra).forEach(k => {
-                                                        if (!mappedValues.has(k) && !extraKeysList.includes(k)) {
-                                                            extraKeysList.push(k);
-                                                        }
-                                                    });
-                                                } catch (e) { }
-                                            }
-                                        });
 
                                         return (
                                             <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : ''}`}>
-                                                {/* Render Core Fields in exact order */}
-                                                {Object.keys(coreColsMap).map(col => (
-                                                    <td key={col} className="p-4">
-                                                        {col === 'uniqueId' ? (
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="font-mono text-xs">{emp[col]}</span>
-                                                                {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
-                                                            </div>
-                                                        ) : col === 'name' ? (
-                                                            <div className="font-semibold text-primary">{emp[col]}</div>
-                                                        ) : col === 'dateOfJoining' ? (
-                                                            <span className="text-xs text-muted-foreground">{formatDate(emp[col])}</span>
-                                                        ) : col === 'employmentStatus' ? (
-                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
-                                                                'bg-green-100 text-green-700'
-                                                                }`}>
-                                                                {emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
-                                                            </span>
-                                                        ) : col === 'srNo' ? (
-                                                            <span className="text-xs text-muted-foreground font-medium">
-                                                                {emp[col] || (page - 1) * metadata.limit + index + 1}
-                                                            </span>
-                                                        ) : col === 'mobile' ? (
-                                                            <span className="text-xs font-semibold text-slate-600">
-                                                                {extraData['Mobile Number'] || '-'}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-xs font-medium text-slate-700">{emp[col] || '-'}</span>
-                                                        )}
-                                                    </td>
-                                                ))}
+                                                {columnOrder.length > 0 ? (
+                                                    // Use dynamic column order
+                                                    columnOrder.map(columnName => (
+                                                        <td key={columnName} className="p-4">
+                                                            {formatColumnValue(columnName, getColumnValue(emp, columnName), emp, index)}
+                                                        </td>
+                                                    ))
+                                                ) : (
+                                                    // Fallback to original rendering logic
+                                                    (() => {
+                                                        const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
 
-                                                {/* Render Extra Fields */}
-                                                {extraKeysList.map(key => (
-                                                    <td key={key} className="p-4 text-xs text-slate-600">
-                                                        {extraData[key] || '-'}
-                                                    </td>
-                                                ))}
+                                                        const coreColsMap: Record<string, string> = {
+                                                            'srNo': 'SR. No',
+                                                            'uniqueId': 'Unique ID',
+                                                            'employeeId': 'Employee ID',
+                                                            'name': 'Employee Name',
+                                                            'dateOfJoining': 'DOJ',
+                                                            'organizationName': 'Organization',
+                                                            'department': 'Department',
+                                                            'branch': 'Branch',
+                                                            'designation': 'Designation',
+                                                            'employmentStatus': 'Status',
+                                                            'mobile': 'Mobile Number'
+                                                        };
+
+                                                        const extraKeysList: string[] = [];
+                                                        const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
+
+                                                        data.forEach(e => {
+                                                            if (e.additionalData) {
+                                                                try {
+                                                                    const extra = JSON.parse(e.additionalData);
+                                                                    Object.keys(extra).forEach(k => {
+                                                                        if (!mappedValues.has(k) && !extraKeysList.includes(k)) {
+                                                                            extraKeysList.push(k);
+                                                                        }
+                                                                    });
+                                                                } catch (e) { }
+                                                            }
+                                                        });
+
+                                                        return (
+                                                            <>
+                                                                {/* Render Core Fields in exact order */}
+                                                                {Object.keys(coreColsMap).map(col => (
+                                                                    <td key={col} className="p-4">
+                                                                        {col === 'uniqueId' ? (
+                                                                            <div className="flex flex-col gap-1">
+                                                                                <span className="font-mono text-xs">{emp[col]}</span>
+                                                                                {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
+                                                                            </div>
+                                                                        ) : col === 'name' ? (
+                                                                            <div className="font-semibold text-primary">{emp[col]}</div>
+                                                                        ) : col === 'dateOfJoining' ? (
+                                                                            <span className="text-xs text-muted-foreground">{formatDate(emp[col])}</span>
+                                                                        ) : col === 'employmentStatus' ? (
+                                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
+                                                                                'bg-green-100 text-green-700'
+                                                                                }`}>
+                                                                                {emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
+                                                                            </span>
+                                                                        ) : col === 'srNo' ? (
+                                                                            <span className="text-xs text-muted-foreground font-medium">
+                                                                                {emp[col] || (page - 1) * metadata.limit + index + 1}
+                                                                            </span>
+                                                                        ) : col === 'mobile' ? (
+                                                                            <span className="text-xs font-semibold text-slate-600">
+                                                                                {extraData['Mobile Number'] || '-'}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-xs font-medium text-slate-700">{emp[col] || '-'}</span>
+                                                                        )}
+                                                                    </td>
+                                                                ))}
+
+                                                                {/* Render Extra Fields */}
+                                                                {extraKeysList.map(key => (
+                                                                    <td key={key} className="p-4 text-xs text-slate-600">
+                                                                        {extraData[key] || '-'}
+                                                                    </td>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()
+                                                )}
 
                                                 <td className="p-4 sticky right-0 bg-card group-hover:bg-muted/50 border-l text-center">
                                                     <DropdownMenu>

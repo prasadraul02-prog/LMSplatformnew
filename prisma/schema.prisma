@@ -409,3 +409,10 @@ model Organization {
 
   @@index([order])
 }
+
+model ColumnMetadata {
+  id          String   @id @default(cuid())
+  columnOrder String   @db.Text // JSON array of column names in exact Excel order
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

@@ -194,6 +194,15 @@ export async function uploadMasterDatabase(formData: FormData) {
             await (tx as any).masterEmployee.createMany({
                 data: validRows
             });
+
+            // Save column order metadata
+            // Delete existing column metadata and create new one
+            await (tx as any).columnMetadata.deleteMany();
+            await (tx as any).columnMetadata.create({
+                data: {
+                    columnOrder: JSON.stringify(keys)
+                }
+            });
         });
 
         revalidatePath('/admin/reports/organizational-report');
@@ -609,5 +618,21 @@ export async function unhighlightAll() {
     } catch (error) {
         console.error("Error unhighlighting employees:", error);
         return { success: false, error: "Failed to unhighlight employees" };
+    }
+}
+
+export async function getColumnOrder() {
+    try {
+        const metadata = await (prisma as any).columnMetadata.findFirst({
+            orderBy: { updatedAt: 'desc' }
+        });
+        if (!metadata) {
+            return { success: true, data: null };
+        }
+        const columnOrder = JSON.parse(metadata.columnOrder);
+        return { success: true, data: columnOrder };
+    } catch (error) {
+        console.error("Error fetching column order:", error);
+        return { success: false, error: "Failed to fetch column order" };
     }
 }
