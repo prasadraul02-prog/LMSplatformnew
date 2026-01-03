@@ -67,7 +67,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         formData.append('file', e.target.files[0]);
 
         const result = await compareOrgSheet(formData, activeOrg);
-        if (result.success) {
+        if (result.success && result.data) {
             setComparisonResult(result.data);
 
             const total = (result.data.newEmployees?.length || 0) +
@@ -78,11 +78,19 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
 
             if (total > 0) {
                 toast.success(`Analysis complete: ${total} movements detected.`);
+
+                // Specific notification for new joined employees as requested
+                if (result.data.newEmployees && result.data.newEmployees.length > 0) {
+                    toast.info(`The following employees are newly joined and not available in the HR Masterdatabase. Do you want to add them?`, {
+                        duration: 6000,
+                        description: `Found ${result.data.newEmployees.length} new employees. Use the "New Onboarding" section below to approve.`
+                    });
+                }
             } else {
                 toast.info("No discrepancies detected against Master Database.");
             }
         } else {
-            toast.error(result.error);
+            toast.error(result.success === false ? result.error : "Failed to analyze sheet");
         }
         setIsAnalyzing(false);
         e.target.value = '';
@@ -227,9 +235,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                             <table className="w-full text-xs text-left">
                                                 <thead className="bg-slate-50 border-y">
                                                     <tr>
-                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Unique ID</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Unique ID (Aadhar)</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Name</th>
-                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Designation</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Department</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Branch</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Status</th>
                                                     </tr>
@@ -237,9 +245,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                 <tbody className="divide-y">
                                                     {comparisonResult.newEmployees.map((emp: any, i: number) => (
                                                         <tr key={i} className="hover:bg-slate-50/50 transition-colors">
-                                                            <td className="p-3 font-mono font-bold">{emp.uniqueId}</td>
+                                                            <td className="p-3 font-mono font-bold text-blue-600">{emp.uniqueId}</td>
                                                             <td className="p-3 font-semibold text-slate-900">{emp.name}</td>
-                                                            <td className="p-3">{emp.designation}</td>
+                                                            <td className="p-3">{emp.department}</td>
                                                             <td className="p-3 text-muted-foreground">{emp.branch}</td>
                                                             <td className="p-3">
                                                                 <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] px-1 uppercase">{emp.status}</Badge>

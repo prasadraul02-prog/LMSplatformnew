@@ -388,7 +388,8 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 });
             };
 
-            const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'idnumber', 'aadhaar']);
+            // Priority matching for Aadhar Card No. as Unique ID
+            const colUniqueId = mapColumn(['aadharcardno', 'aadharcard', 'aadhar']) || mapColumn(['unique', 'uid', 'idnumber', 'aadhaar']);
             const colName = mapColumn(['name', 'employeename', 'fullname', 'workername', 'employee_name']);
             const colEmpId = mapColumn(['employeeid', 'empid', 'regid', 'staffid', 'employee_id', 'code', 'emp id', 'employee id']);
             const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant', 'unit']);
@@ -426,8 +427,14 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 const rawResignDate = colResignDate ? row[colResignDate] : null;
                 const resignDate = rawResignDate ? parseDate(rawResignDate) : null;
 
+                // ID Normalization: remove all non-alphanumeric and spaces
+                const normalizeId = (id: any) => String(id || '').replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
+                const rawUniqueId = row[colUniqueId!];
+                const normalizedUniqueId = normalizeId(rawUniqueId);
+
                 return {
-                    uniqueId: String(row[colUniqueId] || '').trim(),
+                    uniqueId: normalizedUniqueId,
+                    rawUniqueId: String(rawUniqueId || '').trim(),
                     name: String(row[colName] || 'Unknown').trim(),
                     employeeId: colEmpId ? String(row[colEmpId] || '').trim() : null,
                     department: colDept ? String(row[colDept] || '').trim() : '',
@@ -458,13 +465,16 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
         const allActive = [...staff, ...trial, ...contract];
         const allResigned = [...resigned, ...trialDiscontinue];
+
+        // Use normalized unique IDs for all sets to ensure 100% reliable matching
         const activeIds = new Set(allActive.map(e => e.uniqueId));
         const resignedIds = new Set(allResigned.map(e => e.uniqueId));
         const transferredIds = new Set(transferred.map(e => e.uniqueId));
 
-        // Fetch Master Data
+        // Fetch Master Data and build map with normalized IDs
         const masterEmployees = await (prisma as any).masterEmployee.findMany();
-        const masterMap = new Map<string, any>(masterEmployees.map((e: any) => [e.uniqueId, e]));
+        const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
+        const masterMap = new Map<string, any>(masterEmployees.map((e: any) => [normalize(e.uniqueId), e]));
 
         const result: EnhancedComparisonResult = {
             newEmployees: [],
@@ -484,14 +494,15 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             }
         }
 
-        // 2. Resignations from sheets
+        // 2. Resignations from sheets (Explicitly marked in Resigned sheets)
         for (const emp of allResigned) {
             const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() === currentOrg) {
+            // Only process if in Master DB and optionally matching org
+            if (masterEmp) {
                 result.resignations.push({
-                    uniqueId: emp.uniqueId,
+                    uniqueId: masterEmp.uniqueId,
                     name: emp.name,
-                    organization: currentOrg,
+                    organization: masterEmp.organizationName,
                     resignationType: emp.status === 'Resigned - Trial Discontinue' ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
                     remarks: emp.remarks || (emp.status === 'Resigned - Trial Discontinue' ? 'Resigned during trial period' : ''),
                     resignationDate: emp.resignationDate
@@ -499,26 +510,32 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             }
         }
 
-        // 2.1 Automatic Resignation Detection (Missing from all active sheets for this org)
+        // 2.1 Automatic Resignation Detection (Strict Rule: Missing from ALL active sheets for this org)
         const masterOrgEmployees = masterEmployees.filter((e: any) =>
-            e.organizationName.trim() === currentOrg &&
+            normalize(e.organizationName) === normalize(currentOrg) &&
             !e.employmentStatus.toLowerCase().includes('resigned') &&
             !e.employmentStatus.toLowerCase().includes('deactive')
         );
 
         for (const masterEmp of masterOrgEmployees) {
-            if (!activeIds.has(masterEmp.uniqueId) &&
-                !resignedIds.has(masterEmp.uniqueId) &&
-                !transferredIds.has(masterEmp.uniqueId)) {
+            const normalizedMasterId = normalize(masterEmp.uniqueId);
+            // CRITICAL FIX: Only mark as resigned if NOT found in ANY active sheet (Staff, Trial, Contract)
+            // AND not already in resignedIds from explicit resigned sheets
+            // AND not moved to Kerala/Transferred
+            if (!activeIds.has(normalizedMasterId) &&
+                !resignedIds.has(normalizedMasterId) &&
+                !transferredIds.has(normalizedMasterId)) {
 
-                // Only add if not already in result.resignations
-                if (!result.resignations.some(r => r.uniqueId === masterEmp.uniqueId)) {
+                // DOUBLE CHECK: Ensure they are not in ANY of the active sheet arrays just in case of set mismatch
+                const isFoundInActive = allActive.some(a => a.uniqueId === normalizedMasterId);
+
+                if (!isFoundInActive && !result.resignations.some(r => normalize(r.uniqueId) === normalizedMasterId)) {
                     result.resignations.push({
                         uniqueId: masterEmp.uniqueId,
                         name: masterEmp.name,
-                        organization: currentOrg,
+                        organization: masterEmp.organizationName,
                         resignationType: 'NORMAL',
-                        remarks: 'Automatically detected exit (Missing from active sheets)',
+                        remarks: 'Automatically detected exit (Missing from active Staff/Trial/Contract sheets)',
                         resignationDate: new Date().toISOString()
                     });
                 }
@@ -676,23 +693,33 @@ export async function applyChanges(changes: {
         await prisma.$transaction(async (tx) => {
             // 1. Add New Employees
             if (changes.newEmployees) {
+                const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
                 for (const emp of changes.newEmployees) {
-                    const newEmp = await (tx as any).masterEmployee.create({
-                        data: {
-                            uniqueId: emp.uniqueId,
-                            name: emp.name,
-                            organizationName: changes.orgName,
-                            employmentStatus: emp.status,
-                            employeeId: emp.employeeId,
-                            department: emp.department,
-                            branch: emp.branch || changes.orgName,
-                            designation: emp.designation || 'Unknown',
-                            dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
-                            additionalData: emp.additionalData
-                        }
+                    const normalizedId = normalize(emp.uniqueId);
+
+                    // Check if already exists just to be safe (transactional)
+                    const existing = await (tx as any).masterEmployee.findUnique({
+                        where: { uniqueId: normalizedId }
                     });
 
-                    await logEmployeeHistory(emp.uniqueId, 'NEW_EMPLOYEE', null, newEmp);
+                    if (!existing) {
+                        const newEmp = await (tx as any).masterEmployee.create({
+                            data: {
+                                uniqueId: normalizedId,
+                                name: emp.name,
+                                organizationName: changes.orgName,
+                                employmentStatus: emp.status,
+                                employeeId: emp.employeeId,
+                                department: emp.department,
+                                branch: emp.branch || changes.orgName,
+                                designation: emp.designation || 'Unknown',
+                                dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
+                                additionalData: emp.additionalData
+                            }
+                        });
+
+                        await logEmployeeHistory(normalizedId, 'NEW_EMPLOYEE', null, newEmp);
+                    }
                 }
             }
 
