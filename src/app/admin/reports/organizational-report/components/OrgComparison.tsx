@@ -240,6 +240,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Department</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Branch</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Status</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -251,6 +252,11 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                             <td className="p-3 text-muted-foreground">{emp.branch}</td>
                                                             <td className="p-3">
                                                                 <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] px-1 uppercase">{emp.status}</Badge>
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs border-green-200 hover:bg-green-50 text-green-700" onClick={() => handleApply('newEmployees', [emp])} disabled={isApplying}>
+                                                                    Add
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -286,6 +292,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Transition</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">ID Update</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -310,6 +317,11 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                         <span className="font-bold text-primary font-mono">{change.newEmployeeId}</span>
                                                                     </div>
                                                                 ) : <span className="text-slate-400 italic">No change</span>}
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs border-blue-200 hover:bg-blue-50 text-blue-700" onClick={() => handleApply('statusChanges', [change])} disabled={isApplying}>
+                                                                    Confirm
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -345,6 +357,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Type</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Details</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -362,6 +375,11 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                             <td className="p-3">
                                                                 <div className="text-xs font-medium">{formatDate(exit.resignationDate)}</div>
                                                                 <div className="text-[10px] text-slate-500 italic truncate max-w-[150px]">{exit.remarks || '-'}</div>
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs border-red-200 hover:bg-red-50 text-red-700" onClick={() => handleApply('resignations', [exit])} disabled={isApplying}>
+                                                                    Process
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     ))}
@@ -397,6 +415,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Path</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">New ID</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -415,6 +434,11 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                 <Badge variant="outline" className="text-[9px] mt-1 p-0 px-1 border-purple-200">{t.transferType.replace(/_/g, ' ')}</Badge>
                                                             </td>
                                                             <td className="p-3 font-mono font-bold text-primary">{t.newEmployeeId || '-'}</td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs border-purple-200 hover:bg-purple-50 text-purple-700" onClick={() => handleApply('transfers', [t])} disabled={isApplying}>
+                                                                    Transfer
+                                                                </Button>
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -448,6 +472,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                     <tr>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
                                                         <th className="p-3 font-bold uppercase tracking-wider text-slate-500">ID Delta</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500 text-right">Action</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y">
@@ -460,6 +485,11 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                                     <ArrowRight className="h-3 w-3 text-slate-400" />
                                                                     <span className="font-bold font-mono text-primary uppercase">{c.newEmployeeId}</span>
                                                                 </div>
+                                                            </td>
+                                                            <td className="p-3 text-right">
+                                                                <Button size="sm" variant="outline" className="h-7 text-xs border-orange-200 hover:bg-orange-50 text-orange-700" onClick={() => handleApply('employeeIdChanges', [c])} disabled={isApplying}>
+                                                                    Sync
+                                                                </Button>
                                                             </td>
                                                         </tr>
                                                     ))}

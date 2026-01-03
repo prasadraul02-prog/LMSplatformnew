@@ -343,42 +343,34 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'buffer' });
-
-        // Auto-detect all 6 sheet types
         const sheetNames = workbook.SheetNames;
-        const findSheet = (keywords: string[]) => sheetNames.find(s => keywords.some(k => s.toLowerCase().includes(k)));
 
-        const staffSheetName = findSheet(['staff', 'permanent']);
-        const trialSheetName = findSheet(['trial', 'probation']) && !findSheet(['discontinue']) ? findSheet(['trial', 'probation']) : undefined;
-        const contractSheetName = findSheet(['contract']);
+        // 1. Sheet Detection (Dynamic & Robust)
+        const findSheet = (keywords: string[], exclude: string[] = []) =>
+            sheetNames.find(s =>
+                keywords.some(k => s.toLowerCase().includes(k)) &&
+                !exclude.some(e => s.toLowerCase().includes(e))
+            );
 
-        // New sheet types
-        const resignedSheetName: string | undefined = sheetNames.find(s =>
-            s.toLowerCase().includes('resign') &&
-            !s.toLowerCase().includes('discontinue')
-        );
-        const trialDiscontinueSheetName: string | undefined = sheetNames.find(s =>
-            s.toLowerCase().includes('trial') &&
-            s.toLowerCase().includes('discontinue')
-        );
-        const transferSheetName: string | undefined = sheetNames.find(s =>
-            s.toLowerCase().includes('transfer') ||
-            s.toLowerCase().includes('kerala')
-        );
+        const staffSheet = findSheet(['staff', 'permanent']);
+        const trialSheet = findSheet(['trial', 'probation'], ['discontinue']);
+        const contractSheet = findSheet(['contract']);
 
-        if (!staffSheetName && !trialSheetName && !contractSheetName) {
-            return { success: false, error: "Could not detect Staff, Trial, or Contract sheets." };
-        }
+        // Resignation sheets: Look for "resigned" (generic or org-specific) but exclude "trial discontinue"
+        const resignedSheet = findSheet(['resigned'], ['discontinue']);
 
-        // Enhanced parseSheet function
-        const parseSheet = (sheetName: string | undefined, status: string, isResignation: boolean = false) => {
+        // Specific sheets
+        const trialDiscontinueSheet = findSheet(['trial'], ['active']) && findSheet(['discontinue']);
+        const transferKeralaSheet = findSheet(['transfer'], ['active']) && findSheet(['kerala']);
+
+        // 2. Data Parsing Helper
+        const parseSheet = (sheetName: string | undefined, status: string) => {
             if (!sheetName) return [];
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
             if (json.length === 0) return [];
-
             const keys = Object.keys(json[0] as object);
 
-            // Mapper helper with dots/spaces cleaning
+            // Clean function: lowercase, alphanumeric only
             const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
             const mapColumn = (keywords: string[]) => {
                 const cleanKeywords = keywords.map(clean);
@@ -388,94 +380,68 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 });
             };
 
-            // Priority matching for Aadhar Card No. as Unique ID
-            const colUniqueId = mapColumn(['aadharcardno', 'aadharcard', 'aadhar']) || mapColumn(['unique', 'uid', 'idnumber', 'aadhaar']);
-            const colName = mapColumn(['name', 'employeename', 'fullname', 'workername', 'employee_name']);
-            const colEmpId = mapColumn(['employeeid', 'empid', 'regid', 'staffid', 'employee_id', 'code', 'emp id', 'employee id']);
-            const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant', 'unit']);
-            const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
-            const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
-            const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
-            const colDept = mapColumn(['department', 'departments', 'dept', 'function', 'team', 'unit', 'vertical', 'division']);
-            const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index', 'sr.no']);
-            const colOrg = mapColumn(['organization', 'org', 'company', 'firm', 'unitname']);
-            const colRemarks = mapColumn(['remarks', 'remark', 'reason', 'comment', 'note']);
-            const colResignDate = mapColumn(['resigndate', 'resignationdate', 'lastworkingday', 'exitdate']);
+            // STRICT RULE: Use Aadhar Card No. (Column BR generally) as Unique ID
+            const colUniqueId = mapColumn(['aadharcardno', 'aadharcard', 'aadhar', 'uid']);
 
-            if (!colUniqueId || !colName) return [];
+            if (!colUniqueId) return []; // Critical: Must have Aadhar
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo, colOrg, colRemarks, colResignDate].filter(Boolean) as string[]);
+            const colName = mapColumn(['name', 'employeename']);
+            const colEmpId = mapColumn(['employeeid', 'empid']);
+            const colDept = mapColumn(['department', 'dept']);
+            const colBranch = mapColumn(['branch', 'location']);
+            const colDesig = mapColumn(['designation']);
+            const colDoj = mapColumn(['joining', 'doj']);
+            const colResignDate = mapColumn(['resigndate', 'exitdate']);
+            const colRemarks = mapColumn(['remarks']);
+
+            const normalizeId = (id: any) => String(id || '').replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
 
             return json.map((row: any) => {
-                const additionalData: Record<string, any> = {};
-                keys.forEach(key => {
-                    if (!coreColsSet.has(key)) {
-                        additionalData[key] = row[key];
-                    }
-                });
-
-                // Mobile Number preservation
-                if (colMobile && row[colMobile]) {
-                    additionalData['Mobile Number'] = String(row[colMobile]).trim();
-                }
-
-                // Parse DOJ
-                const rawDoj = colDoj ? row[colDoj] : null;
-                const doj = rawDoj ? parseDate(rawDoj) : null;
-
-                // Parse resignation date if applicable
-                const rawResignDate = colResignDate ? row[colResignDate] : null;
-                const resignDate = rawResignDate ? parseDate(rawResignDate) : null;
-
-                // Standardized ID Normalization: remove all non-alphanumeric (dashes, spaces, etc)
-                const normalizeId = (id: any) => String(id || '').replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
-                const rawUniqueId = row[colUniqueId!];
-                const normalizedUniqueId = normalizeId(rawUniqueId);
-
+                const pDate = (val: any) => val ? parseDate(val) : null;
+                const rawUid = row[colUniqueId!];
                 return {
-                    uniqueId: normalizedUniqueId,
-                    rawUniqueId: String(rawUniqueId || '').trim(),
-                    name: String(row[colName] || 'Unknown').trim(),
-                    employeeId: colEmpId ? String(row[colEmpId] || '').trim() : null,
-                    department: colDept ? String(row[colDept] || '').trim() : '',
-                    branch: colBranch ? String(row[colBranch] || '').trim() : '',
-                    designation: colDesignation ? String(row[colDesignation] || '').trim() : '',
-                    dateOfJoining: doj ? doj.toISOString() : null,
-                    status: status,
-                    srNo: colSrNo ? String(row[colSrNo] || '').trim() : null,
-                    organizationName: colOrg ? String(row[colOrg] || '').trim() : '',
-                    remarks: colRemarks ? String(row[colRemarks] || '').trim() : '',
-                    resignationDate: resignDate ? resignDate.toISOString() : null,
-                    isResignation,
-                    additionalData: JSON.stringify(additionalData)
+                    uniqueId: normalizeId(rawUid),
+                    rawUniqueId: String(rawUid || ''),
+                    name: String(row[colName!] || 'Unknown').trim(),
+                    employeeId: row[colEmpId!] ? String(row[colEmpId!]).trim() : null,
+                    department: row[colDept!] ? String(row[colDept!]).trim() : '',
+                    branch: row[colBranch!] ? String(row[colBranch!]).trim() : '',
+                    designation: row[colDesig!] ? String(row[colDesig!]).trim() : '',
+                    dateOfJoining: pDate(row[colDoj!])?.toISOString() || null,
+                    resignationDate: pDate(row[colResignDate!])?.toISOString() || null,
+                    remarks: row[colRemarks!] ? String(row[colRemarks!]).trim() : '',
+                    status: status, // Assigned based on sheet source
+                    originalRow: JSON.stringify(row) // Keep full data for add
                 };
-            }).filter(r => r.uniqueId);
+            }).filter(r => r.uniqueId.length > 0); // Filter out empty IDs
         };
 
-        // Standardized org name for comparison
-        const currentOrg = orgName.trim();
+        // 3. Extract Data from All Sheets
+        // Active Lists
+        const staff = parseSheet(staffSheet, 'Staff');
+        const trial = parseSheet(trialSheet, 'On Trial');
+        const contract = parseSheet(contractSheet, 'Contract');
 
-        // Parse all sheet types
-        const staff = parseSheet(staffSheetName, 'Active');
-        const trial = parseSheet(trialSheetName, 'Active - On Trial');
-        const contract = parseSheet(contractSheetName, 'Active - Contract');
-        const resigned = parseSheet(resignedSheetName, 'Resigned', true);
-        const trialDiscontinue = parseSheet(trialDiscontinueSheetName, 'Resigned - Trial Discontinue', true);
-        const transferred = parseSheet(transferSheetName, 'Transferred', false);
+        // Inactive Lists
+        const resigned = parseSheet(resignedSheet, 'Resigned'); // Explicit Resignations
+        const discontinued = parseSheet(trialDiscontinueSheet, 'Resigned - Trial Discontinue');
+        const keralaTransfers = parseSheet(transferKeralaSheet, 'Transferred - Kerala');
 
-        const allActive = [...staff, ...trial, ...contract];
-        const allResigned = [...resigned, ...trialDiscontinue];
+        // Combined Active List
+        const allActiveSheetEmps = [...staff, ...trial, ...contract];
+        const activeSheetIds = new Set(allActiveSheetEmps.map(e => e.uniqueId));
 
-        // Use normalized unique IDs for all sets to ensure 100% reliable matching
-        const activeIds = new Set(allActive.map(e => e.uniqueId));
-        const resignedIds = new Set(allResigned.map(e => e.uniqueId));
-        const transferredIds = new Set(transferred.map(e => e.uniqueId));
+        // Combined Inactive List (Explicit)
+        const allInactiveSheetEmps = [...resigned, ...discontinued, ...keralaTransfers];
+        const inactiveSheetMap = new Map(allInactiveSheetEmps.map(e => [e.uniqueId, e]));
 
-        // Fetch Master Data and build map with standardized normalization
+        // 4. Fetch Master Database
         const masterEmployees = await (prisma as any).masterEmployee.findMany();
         const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
+        // Master Map: Unique ID -> Employee Object
         const masterMap = new Map<string, any>(masterEmployees.map((e: any) => [normalize(e.uniqueId), e]));
 
+        // 5. Comparison Logic
         const result: EnhancedComparisonResult = {
             newEmployees: [],
             statusChanges: [],
@@ -484,192 +450,122 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             employeeIdChanges: []
         };
 
-        // 1. New Employees (not in Master DB)
-        for (const emp of allActive) {
+        const currentOrgNormalized = orgName.toLowerCase().trim();
+
+        // A. New Employee Detection
+        // Rule: Exists in Analyser (Active Sheets) AND NOT in Master DB
+        for (const emp of allActiveSheetEmps) {
             if (!masterMap.has(emp.uniqueId)) {
                 result.newEmployees.push({
                     ...emp,
-                    organization: currentOrg
+                    organization: orgName,
+                    status: emp.status // 'Staff', 'On Trial', or 'Contract' based on sheet
                 });
             }
         }
 
-        // 2. Resignations from sheets (Explicitly marked in Resigned sheets)
-        for (const emp of allResigned) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            // Only process if in Master DB and optionally matching org
-            if (masterEmp) {
-                result.resignations.push({
-                    uniqueId: masterEmp.uniqueId,
-                    name: emp.name,
-                    organization: masterEmp.organizationName,
-                    resignationType: emp.status === 'Resigned - Trial Discontinue' ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
-                    remarks: emp.remarks || (emp.status === 'Resigned - Trial Discontinue' ? 'Resigned during trial period' : ''),
-                    resignationDate: emp.resignationDate
-                });
-            }
-        }
-
-        // 2.1 Automatic Resignation Detection (Strict Rule: Missing from ALL active sheets for this org)
-        const masterOrgEmployees = masterEmployees.filter((e: any) =>
-            normalize(e.organizationName) === normalize(currentOrg) &&
+        // B. Resignation Detection & Kerala Transfers
+        // Rule: Active in Master (Current Org) AND NOT in Active Sheets AND Found in Resigned/Discontinue/Transfer Sheets
+        const masterCurrentOrgEmps = masterEmployees.filter((e: any) =>
+            e.organizationName.toLowerCase().trim() === currentOrgNormalized &&
             !e.employmentStatus.toLowerCase().includes('resigned') &&
-            !e.employmentStatus.toLowerCase().includes('deactive')
+            !e.employmentStatus.toLowerCase().includes('discontinue') &&
+            !e.employmentStatus.toLowerCase().includes('transferred')
         );
 
-        for (const masterEmp of masterOrgEmployees) {
-            const normalizedMasterId = normalize(masterEmp.uniqueId);
-            // CRITICAL FIX: Only mark as resigned if NOT found in ANY active sheet (Staff, Trial, Contract)
-            // AND not already in resignedIds from explicit resigned sheets
-            // AND not moved to Kerala/Transferred
-            if (!activeIds.has(normalizedMasterId) &&
-                !resignedIds.has(normalizedMasterId) &&
-                !transferredIds.has(normalizedMasterId)) {
+        for (const masterEmp of masterCurrentOrgEmps) {
+            const id = normalize(masterEmp.uniqueId);
 
-                // DOUBLE CHECK: Ensure they are not in ANY of the active sheet arrays just in case of set mismatch
-                const isFoundInActive = allActive.some(a => a.uniqueId === normalizedMasterId);
+            // Condition 1: Must be missing from active sheets (Staff/Trial/Contract)
+            if (!activeSheetIds.has(id)) {
 
-                if (!isFoundInActive && !result.resignations.some(r => normalize(r.uniqueId) === normalizedMasterId)) {
-                    result.resignations.push({
-                        uniqueId: masterEmp.uniqueId,
-                        name: masterEmp.name,
-                        organization: masterEmp.organizationName,
-                        resignationType: 'NORMAL',
-                        remarks: 'Automatically detected exit (Missing from active Staff/Trial/Contract sheets)',
-                        resignationDate: new Date().toISOString()
-                    });
+                // Condition 2: Check if present in explicit inactive sheets
+                const inactiveMatch = inactiveSheetMap.get(id);
+
+                if (inactiveMatch) {
+                    // It is a valid resignation or transfer out
+                    if (inactiveMatch.status.includes('Transferred')) {
+                        // Transfer to Kerala
+                        result.transfers.push({
+                            uniqueId: masterEmp.uniqueId,
+                            name: masterEmp.name,
+                            fromOrg: orgName,
+                            toOrg: inactiveMatch.branch || 'Kerala', // Usually 'Kerala' sheet implies Kerala
+                            transferType: 'TO_KERALA',
+                            remarks: inactiveMatch.remarks
+                        });
+                    } else {
+                        // Resignation or Trial Discontinue
+                        result.resignations.push({
+                            uniqueId: masterEmp.uniqueId,
+                            name: masterEmp.name,
+                            organization: orgName,
+                            resignationType: inactiveMatch.status.includes('Discontinue') ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
+                            remarks: inactiveMatch.remarks || inactiveMatch.status,
+                            resignationDate: inactiveMatch.resignationDate || new Date().toISOString()
+                        });
+                    }
                 }
             }
         }
 
-        // 3. Status Changes (bidirectional)
-        for (const emp of staff) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() === currentOrg) {
-                // On Trial → Staff
-                if (masterEmp.employmentStatus.toLowerCase().includes('trial')) {
-                    result.statusChanges.push({
-                        uniqueId: emp.uniqueId,
-                        name: emp.name,
-                        oldStatus: masterEmp.employmentStatus,
-                        newStatus: 'Active',
-                        oldEmployeeId: masterEmp.employeeId,
-                        newEmployeeId: emp.employeeId,
-                        organization: currentOrg
-                    });
-                }
-                // Contract → Staff
-                else if (masterEmp.employmentStatus.toLowerCase().includes('contract')) {
-                    result.statusChanges.push({
-                        uniqueId: emp.uniqueId,
-                        name: emp.name,
-                        oldStatus: masterEmp.employmentStatus,
-                        newStatus: 'Active',
-                        oldEmployeeId: masterEmp.employeeId,
-                        newEmployeeId: emp.employeeId,
-                        organization: currentOrg
-                    });
-                }
-            }
-        }
+        // C. Status Change Detection
+        // Rule: In Master (Active) AND In Active Sheets AND Status mismatch
+        for (const sheetEmp of allActiveSheetEmps) {
+            const masterEmp = masterMap.get(sheetEmp.uniqueId);
 
-        for (const emp of trial) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() === currentOrg) {
-                // Staff → On Trial
-                if (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent') {
-                    result.statusChanges.push({
-                        uniqueId: emp.uniqueId,
-                        name: emp.name,
-                        oldStatus: masterEmp.employmentStatus,
-                        newStatus: 'Active - On Trial',
-                        oldEmployeeId: masterEmp.employeeId,
-                        newEmployeeId: emp.employeeId,
-                        organization: currentOrg
+            if (masterEmp) {
+                // Check if Organization matches logic (Inter-Org Transfer Detection)
+                const masterOrg = masterEmp.organizationName.toLowerCase().trim();
+
+                if (masterOrg !== currentOrgNormalized && masterOrg.length > 0 && masterOrg !== 'unknown') {
+                    // 5. Inter-Organization Transfer
+                    result.transfers.push({
+                        uniqueId: sheetEmp.uniqueId,
+                        name: sheetEmp.name,
+                        fromOrg: masterEmp.organizationName,
+                        toOrg: orgName,
+                        transferType: 'INTER_ORG',
+                        newEmployeeId: sheetEmp.employeeId,
+                        oldEmployeeId: masterEmp.employeeId
                     });
+                } else if (masterOrg === currentOrgNormalized) {
+                    // Same Org -> Check Status Change
+                    // Normalize statuses for comparison
+                    const sheetStatus = sheetEmp.status.toLowerCase(); // 'staff', 'on trial', 'contract'
+                    const masterStatus = masterEmp.employmentStatus.toLowerCase();
+
+                    // Map master status to simple keys
+                    let masterSimpleStatus = '';
+                    if (masterStatus.includes('trial') || masterStatus.includes('probation')) masterSimpleStatus = 'on trial';
+                    else if (masterStatus.includes('contract')) masterSimpleStatus = 'contract';
+                    else if (masterStatus.includes('active') || masterStatus.includes('permanent') || masterStatus.includes('staff')) masterSimpleStatus = 'staff';
+
+                    const sheetSimpleStatus = sheetStatus.toLowerCase(); // Already simplified from parse
+
+                    if (masterSimpleStatus && sheetSimpleStatus && masterSimpleStatus !== sheetSimpleStatus) {
+                        result.statusChanges.push({
+                            uniqueId: sheetEmp.uniqueId,
+                            name: sheetEmp.name,
+                            oldStatus: masterEmp.employmentStatus, // Display original
+                            newStatus: sheetEmp.status, // New display status
+                            organization: orgName,
+                            oldEmployeeId: masterEmp.employeeId,
+                            newEmployeeId: sheetEmp.employeeId
+                        });
+                    }
+
+                    // Check for Employee ID Change (Secondary)
+                    else if (sheetEmp.employeeId && masterEmp.employeeId && sheetEmp.employeeId !== masterEmp.employeeId) {
+                        result.employeeIdChanges.push({
+                            uniqueId: sheetEmp.uniqueId,
+                            name: sheetEmp.name,
+                            oldEmployeeId: masterEmp.employeeId,
+                            newEmployeeId: sheetEmp.employeeId,
+                            organization: orgName
+                        });
+                    }
                 }
-                // Contract → On Trial
-                else if (masterEmp.employmentStatus.toLowerCase().includes('contract')) {
-                    result.statusChanges.push({
-                        uniqueId: emp.uniqueId,
-                        name: emp.name,
-                        oldStatus: masterEmp.employmentStatus,
-                        newStatus: 'Active - On Trial',
-                        oldEmployeeId: masterEmp.employeeId,
-                        newEmployeeId: emp.employeeId,
-                        organization: currentOrg
-                    });
-                }
-            }
-        }
-
-        for (const emp of contract) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() === currentOrg) {
-                // Staff → Contract
-                if (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent') {
-                    result.statusChanges.push({
-                        uniqueId: emp.uniqueId,
-                        name: emp.name,
-                        oldStatus: masterEmp.employmentStatus,
-                        newStatus: 'Active - Contract',
-                        oldEmployeeId: masterEmp.employeeId,
-                        newEmployeeId: emp.employeeId,
-                        organization: currentOrg
-                    });
-                }
-            }
-        }
-
-        // 4. Inter-Organizational Transfers (Appearing in this sheet but from another org)
-        for (const emp of allActive) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() !== currentOrg && masterEmp.organizationName !== '') {
-                result.transfers.push({
-                    uniqueId: emp.uniqueId,
-                    name: emp.name,
-                    fromOrg: masterEmp.organizationName,
-                    toOrg: currentOrg,
-                    oldEmployeeId: masterEmp.employeeId,
-                    newEmployeeId: emp.employeeId,
-                    transferType: 'INTER_ORG'
-                });
-            }
-        }
-
-        // 5. Transfer to Kerala/Other locations
-        for (const emp of transferred) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName.trim() === currentOrg) {
-                result.transfers.push({
-                    uniqueId: emp.uniqueId,
-                    name: emp.name,
-                    fromOrg: currentOrg,
-                    toOrg: emp.branch || 'Kerala',
-                    oldEmployeeId: masterEmp.employeeId,
-                    newEmployeeId: emp.employeeId,
-                    transferType: 'TO_KERALA',
-                    remarks: emp.remarks
-                });
-            }
-        }
-
-        // 6. Employee ID Changes (without status change)
-        for (const emp of allActive) {
-            const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp &&
-                masterEmp.organizationName.trim() === currentOrg &&
-                emp.employeeId &&
-                masterEmp.employeeId &&
-                emp.employeeId !== masterEmp.employeeId &&
-                !result.statusChanges.some(sc => sc.uniqueId === emp.uniqueId)) {
-                result.employeeIdChanges.push({
-                    uniqueId: emp.uniqueId,
-                    name: emp.name,
-                    oldEmployeeId: masterEmp.employeeId,
-                    newEmployeeId: emp.employeeId,
-                    organization: currentOrg
-                });
             }
         }
 
@@ -680,7 +576,6 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         return { success: false, error: "Failed to compare sheets: " + (error as Error).message };
     }
 }
-
 export async function applyChanges(changes: {
     newEmployees?: any[],
     statusChanges?: any[],
