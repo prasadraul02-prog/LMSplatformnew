@@ -352,17 +352,23 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 !exclude.some(e => s.toLowerCase().includes(e))
             );
 
-        const staffSheet = findSheet(['staff', 'permanent']);
-        const trialSheet = findSheet(['trial', 'probation'], ['discontinue']);
-        const contractSheet = findSheet(['contract']);
+        const staffSheetName = findSheet(['staff', 'permanent']);
+        const trialSheetName = findSheet(['trial', 'probation'], ['discontinue']);
+        const contractSheetName = findSheet(['contract']);
 
-        // Resignation sheets: Look for "resigned" (generic or org-specific) but exclude "trial discontinue"
-        const resignedSheet = findSheet(['resigned'], ['discontinue']);
+        // Revised Resignation sheets logic
+        const resignedSheetName = findSheet(['resigned', 'exit', 'left'], ['discontinue', 'trial discontinue']);
 
-        // Specific sheets
-        const trialDiscontinueSheet = findSheet(['trial'], ['active']) && findSheet(['discontinue']);
-        const transferKeralaSheet = findSheet(['transfer'], ['active']) && findSheet(['kerala']);
+        // Specific sheets with precise logic
+        const trialDiscontinueSheetName = sheetNames.find(s =>
+            (s.toLowerCase().includes('trial') || s.toLowerCase().includes('probation')) &&
+            s.toLowerCase().includes('discontinue')
+        );
 
+        const transferSheetName = sheetNames.find(s =>
+            (s.toLowerCase().includes('transfer') || s.toLowerCase().includes('moved')) &&
+            s.toLowerCase().includes('kerala')
+        );
         // 2. Data Parsing Helper
         const parseSheet = (sheetName: string | undefined, status: string) => {
             if (!sheetName) return [];
@@ -418,22 +424,22 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
         // 3. Extract Data from All Sheets
         // Active Lists
-        const staff = parseSheet(staffSheet, 'Staff');
-        const trial = parseSheet(trialSheet, 'On Trial');
-        const contract = parseSheet(contractSheet, 'Contract');
+        // Parse all sheet types with precise status labels
+        const staff = parseSheet(staffSheetName, 'Staff');
+        const trial = parseSheet(trialSheetName, 'On Trial');
+        const contract = parseSheet(contractSheetName, 'Contract');
 
         // Inactive Lists
-        const resigned = parseSheet(resignedSheet, 'Resigned'); // Explicit Resignations
-        const discontinued = parseSheet(trialDiscontinueSheet, 'Resigned - Trial Discontinue');
-        const keralaTransfers = parseSheet(transferKeralaSheet, 'Transferred - Kerala');
+        const resigned = parseSheet(resignedSheetName, 'Resigned'); // Explicit Resignations
+        const discontinued = parseSheet(trialDiscontinueSheetName, 'Resigned - Trial Discontinue');
+        const transferred = parseSheet(transferSheetName, 'Transferred - Kerala'); // Renamed var to match new logic
 
-        // Combined Active List
-        const allActiveSheetEmps = [...staff, ...trial, ...contract];
-        const activeSheetIds = new Set(allActiveSheetEmps.map(e => e.uniqueId));
+        const allActive = [...staff, ...trial, ...contract];
+        const allResigned = [...resigned, ...discontinued, ...transferred]; // Group all inactive for processing
 
-        // Combined Inactive List (Explicit)
-        const allInactiveSheetEmps = [...resigned, ...discontinued, ...keralaTransfers];
-        const inactiveSheetMap = new Map(allInactiveSheetEmps.map(e => [e.uniqueId, e]));
+        // Use normalized unique IDs for all sets to ensure 100% reliable matching
+        const activeIds = new Set(allActive.map(e => e.uniqueId));
+        const resignedIds = new Set(allResigned.map(e => e.uniqueId)); // This now includes transfers too for looking up
 
         // 4. Fetch Master Database
         const masterEmployees = await (prisma as any).masterEmployee.findMany();
@@ -454,7 +460,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
         // A. New Employee Detection
         // Rule: Exists in Analyser (Active Sheets) AND NOT in Master DB
-        for (const emp of allActiveSheetEmps) {
+        for (const emp of allActive) {
             if (!masterMap.has(emp.uniqueId)) {
                 result.newEmployees.push({
                     ...emp,
@@ -464,54 +470,77 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             }
         }
 
-        // B. Resignation Detection & Kerala Transfers
-        // Rule: Active in Master (Current Org) AND NOT in Active Sheets AND Found in Resigned/Discontinue/Transfer Sheets
-        const masterCurrentOrgEmps = masterEmployees.filter((e: any) =>
-            e.organizationName.toLowerCase().trim() === currentOrgNormalized &&
-            !e.employmentStatus.toLowerCase().includes('resigned') &&
-            !e.employmentStatus.toLowerCase().includes('discontinue') &&
-            !e.employmentStatus.toLowerCase().includes('transferred')
-        );
+        // 2. Resignation Detection & Kerala Transfers
 
-        for (const masterEmp of masterCurrentOrgEmps) {
-            const id = normalize(masterEmp.uniqueId);
+        // Loop through explicit "Resigned" lists found in the Upload
+        // Rule: If current Master Status is Active (Staff/Trial/Contract) AND found in Resigned Sheet -> Mark Resigned
+        // This takes PRIORITY over them potentially lingering in the Staff sheet.
+        for (const emp of allResigned) {
+            const masterEmp = masterMap.get(emp.uniqueId);
 
-            // Condition 1: Must be missing from active sheets (Staff/Trial/Contract)
-            if (!activeSheetIds.has(id)) {
+            if (masterEmp) {
+                const masterStatus = masterEmp.employmentStatus.toLowerCase();
+                // Only propose resignation if they are currently considered "Active" in the system
+                // checks: is not already resigned from a previous month.
+                const isActiveInMaster =
+                    !masterStatus.includes('resigned') &&
+                    !masterStatus.includes('discontinue') &&
+                    !masterStatus.includes('transferred') &&
+                    !masterStatus.includes('inactive');
 
-                // Condition 2: Check if present in explicit inactive sheets
-                const inactiveMatch = inactiveSheetMap.get(id);
-
-                if (inactiveMatch) {
-                    // It is a valid resignation or transfer out
-                    if (inactiveMatch.status.includes('Transferred')) {
-                        // Transfer to Kerala
+                if (isActiveInMaster) {
+                    if (emp.status.includes('Transferred')) {
                         result.transfers.push({
                             uniqueId: masterEmp.uniqueId,
                             name: masterEmp.name,
                             fromOrg: orgName,
-                            toOrg: inactiveMatch.branch || 'Kerala', // Usually 'Kerala' sheet implies Kerala
+                            toOrg: emp.branch || 'Kerala',
                             transferType: 'TO_KERALA',
-                            remarks: inactiveMatch.remarks
+                            remarks: emp.remarks
                         });
                     } else {
-                        // Resignation or Trial Discontinue
                         result.resignations.push({
                             uniqueId: masterEmp.uniqueId,
                             name: masterEmp.name,
                             organization: orgName,
-                            resignationType: inactiveMatch.status.includes('Discontinue') ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
-                            remarks: inactiveMatch.remarks || inactiveMatch.status,
-                            resignationDate: inactiveMatch.resignationDate || new Date().toISOString()
+                            resignationType: emp.status.includes('Discontinue') ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
+                            remarks: emp.remarks || `Found in ${emp.status} sheet`,
+                            resignationDate: emp.resignationDate || new Date().toISOString()
                         });
                     }
                 }
             }
         }
 
+        // B2. Automatic Implicit Resignation
+        const explicitResignationIds = new Set(result.resignations.map(r => r.uniqueId));
+        const explicitTransferIds = new Set(result.transfers.map(t => t.uniqueId));
+
+        const masterCurrentOrgEmps = masterEmployees.filter((e: any) =>
+            e.organizationName.toLowerCase().trim() === currentOrgNormalized &&
+            !e.employmentStatus.toLowerCase().includes('resigned') &&
+            !e.employmentStatus.toLowerCase().includes('discontinue') &&
+            !e.employmentStatus.toLowerCase().includes('transferred') &&
+            !e.employmentStatus.toLowerCase().includes('inactive')
+        );
+
+        for (const masterEmp of masterCurrentOrgEmps) {
+            const id = normalize(masterEmp.uniqueId);
+            if (!activeIds.has(id) && !explicitResignationIds.has(id) && !explicitTransferIds.has(id)) {
+                result.resignations.push({
+                    uniqueId: masterEmp.uniqueId,
+                    name: masterEmp.name,
+                    organization: orgName,
+                    resignationType: 'NORMAL',
+                    remarks: 'Automatically detected exit (Missing from active sheets)',
+                    resignationDate: new Date().toISOString()
+                });
+            }
+        }
+
         // C. Status Change Detection
         // Rule: In Master (Active) AND In Active Sheets AND Status mismatch
-        for (const sheetEmp of allActiveSheetEmps) {
+        for (const sheetEmp of allActive) {
             const masterEmp = masterMap.get(sheetEmp.uniqueId);
 
             if (masterEmp) {
