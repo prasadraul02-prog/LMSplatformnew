@@ -317,7 +317,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
-            const colDept = mapColumn(['department', 'dept', 'function', 'team', 'unit', 'vertical', 'division', 'departnment', 'departmnt']);
+            const colDept = mapColumn(['department', 'departments', 'dept', 'function', 'team', 'unit', 'vertical', 'division', 'departnment', 'departmnt', 'departnmant', 'departmant']);
             const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index']);
 
             if (!colUniqueId || !colName) return [];
@@ -345,9 +345,9 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     uniqueId: String(row[colUniqueId]).trim(),
                     name: String(row[colName] || 'Unknown'),
                     employeeId: colEmpId ? String(row[colEmpId] || '') : null,
-                    department: colDept ? String(row[colDept] || '') : 'Unknown',
-                    branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
-                    designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
+                    department: colDept ? String(row[colDept] || '') : '',
+                    branch: colBranch ? String(row[colBranch] || '') : '',
+                    designation: colDesignation ? String(row[colDesignation] || '') : '',
                     dateOfJoining: doj ? doj.toISOString() : null, // Stringify for transfer
                     status: status,
                     additionalData: JSON.stringify(additionalData)
