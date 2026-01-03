@@ -318,11 +318,12 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
             const colDept = mapColumn(['department', 'departments', 'dept', 'function', 'team', 'unit', 'vertical', 'division', 'departnment', 'departmnt', 'departnmant', 'departmant']);
-            const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index']);
+            const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index', 'sr.no']);
+            const colOrg = mapColumn(['organization', 'org', 'company', 'firm', 'unitname']);
 
             if (!colUniqueId || !colName) return [];
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo].filter(Boolean) as string[]);
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo, colOrg].filter(Boolean) as string[]);
 
             return json.map((row: any) => {
                 const additionalData: Record<string, any> = {};
@@ -350,6 +351,8 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     designation: colDesignation ? String(row[colDesignation] || '') : '',
                     dateOfJoining: doj ? doj.toISOString() : null, // Stringify for transfer
                     status: status,
+                    srNo: colSrNo ? String(row[colSrNo] || '') : null,
+                    organizationName: colOrg ? String(row[colOrg] || '') : '',
                     additionalData: JSON.stringify(additionalData)
                 };
             }).filter(r => r.uniqueId);

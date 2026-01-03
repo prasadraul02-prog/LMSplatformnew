@@ -310,37 +310,45 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                         <table className="w-full text-sm text-left border-collapse">
                             <thead className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md border-b">
                                 <tr>
-                                    <th className="p-4 font-bold text-primary w-[50px]">#</th>
                                     {(() => {
-                                        // Define core columns that we always want to show if they exist
+                                        // Exactly match the user's screenshot order
                                         const coreColsMap: Record<string, string> = {
+                                            'srNo': 'SR. No',
                                             'uniqueId': 'Unique ID',
                                             'employeeId': 'Employee ID',
                                             'name': 'Employee Name',
-                                            'department': 'Department',
                                             'dateOfJoining': 'DOJ',
+                                            'organizationName': 'Organization',
+                                            'department': 'Department',
                                             'branch': 'Branch',
                                             'designation': 'Designation',
-                                            'employmentStatus': 'Status'
+                                            'employmentStatus': 'Status',
+                                            'mobile': 'Mobile Number'
                                         };
 
-                                        // Identify all unique extra data keys
+                                        // Identify all unique extra data keys (excluding those we've mapped to core)
                                         const extraKeys = new Set<string>();
+                                        const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
+
                                         data.forEach(emp => {
                                             if (emp.additionalData) {
                                                 try {
                                                     const extra = JSON.parse(emp.additionalData);
-                                                    Object.keys(extra).forEach(k => extraKeys.add(k));
+                                                    Object.keys(extra).forEach(k => {
+                                                        if (!mappedValues.has(k)) {
+                                                            extraKeys.add(k);
+                                                        }
+                                                    });
                                                 } catch (e) { }
                                             }
                                         });
 
-                                        const dynamicRows = [
+                                        const dynamicHeaders = [
                                             ...Object.values(coreColsMap),
                                             ...Array.from(extraKeys)
                                         ];
 
-                                        return dynamicRows.map(header => (
+                                        return dynamicHeaders.map(header => (
                                             <th key={header} className="p-4 font-bold text-primary min-w-[120px] whitespace-nowrap">{header}</th>
                                         ));
                                     })()}
@@ -350,7 +358,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                             <tbody className="divide-y">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={20} className="p-20 text-center">
+                                        <td colSpan={25} className="p-20 text-center">
                                             <div className="flex flex-col items-center gap-4">
                                                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
                                                 <p className="text-lg font-medium animate-pulse">Loading employee data...</p>
@@ -359,7 +367,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     </tr>
                                 ) : data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={20} className="p-20 text-center text-muted-foreground italic">
+                                        <td colSpan={25} className="p-20 text-center text-muted-foreground italic">
                                             No employee records found matching your search.
                                         </td>
                                     </tr>
@@ -368,24 +376,40 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                         const isNew = emp.createdAt && (new Date().getTime() - new Date(emp.createdAt).getTime() < 24 * 60 * 60 * 1000);
                                         const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
 
-                                        // Same logic for headers to match cells
-                                        const coreCols = ['uniqueId', 'employeeId', 'name', 'department', 'dateOfJoining', 'branch', 'designation', 'employmentStatus'];
-                                        const extraKeys = new Set<string>();
+                                        const coreColsMap: Record<string, string> = {
+                                            'srNo': 'SR. No',
+                                            'uniqueId': 'Unique ID',
+                                            'employeeId': 'Employee ID',
+                                            'name': 'Employee Name',
+                                            'dateOfJoining': 'DOJ',
+                                            'organizationName': 'Organization',
+                                            'department': 'Department',
+                                            'branch': 'Branch',
+                                            'designation': 'Designation',
+                                            'employmentStatus': 'Status',
+                                            'mobile': 'Mobile Number'
+                                        };
+
+                                        const extraKeysList: string[] = [];
+                                        const mappedValues = new Set(['SR. No', 'SR No', 'Unique ID', 'Employee ID', 'Employee Name', 'DOJ', 'Organization', 'Department', 'Branch', 'Designation', 'Status', 'Mobile Number']);
+
                                         data.forEach(e => {
                                             if (e.additionalData) {
                                                 try {
                                                     const extra = JSON.parse(e.additionalData);
-                                                    Object.keys(extra).forEach(k => extraKeys.add(k));
+                                                    Object.keys(extra).forEach(k => {
+                                                        if (!mappedValues.has(k) && !extraKeysList.includes(k)) {
+                                                            extraKeysList.push(k);
+                                                        }
+                                                    });
                                                 } catch (e) { }
                                             }
                                         });
 
                                         return (
                                             <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : ''}`}>
-                                                <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
-
-                                                {/* Render Core Fields */}
-                                                {coreCols.map(col => (
+                                                {/* Render Core Fields in exact order */}
+                                                {Object.keys(coreColsMap).map(col => (
                                                     <td key={col} className="p-4">
                                                         {col === 'uniqueId' ? (
                                                             <div className="flex flex-col gap-1">
@@ -402,6 +426,14 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                                 }`}>
                                                                 {emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
                                                             </span>
+                                                        ) : col === 'srNo' ? (
+                                                            <span className="text-xs text-muted-foreground font-medium">
+                                                                {emp[col] || (page - 1) * metadata.limit + index + 1}
+                                                            </span>
+                                                        ) : col === 'mobile' ? (
+                                                            <span className="text-xs font-semibold text-slate-600">
+                                                                {extraData['Mobile Number'] || '-'}
+                                                            </span>
                                                         ) : (
                                                             <span className="text-xs font-medium text-slate-700">{emp[col] || '-'}</span>
                                                         )}
@@ -409,7 +441,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                 ))}
 
                                                 {/* Render Extra Fields */}
-                                                {Array.from(extraKeys).map(key => (
+                                                {extraKeysList.map(key => (
                                                     <td key={key} className="p-4 text-xs text-slate-600">
                                                         {extraData[key] || '-'}
                                                     </td>
@@ -444,43 +476,46 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                 </div>
 
                 {/* Pagination */}
-                {metadata.totalPages > 1 && (
-                    <div className="flex items-center justify-between py-6">
-                        <div className="hidden sm:block text-sm text-muted-foreground font-medium">
-                            Rows per page: {metadata.limit}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(page - 1)}
-                                disabled={page === 1 || isLoading}
-                                className="h-9 px-4"
-                            >
-                                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-                            </Button>
-
-                            <div className="flex items-center gap-1 mx-2">
-                                <span className="text-sm font-bold text-primary">Page {page}</span>
-                                <span className="text-sm text-muted-foreground">of {metadata.totalPages}</span>
+                {
+                    metadata.totalPages > 1 && (
+                        <div className="flex items-center justify-between py-6">
+                            <div className="hidden sm:block text-sm text-muted-foreground font-medium">
+                                Rows per page: {metadata.limit}
                             </div>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(page - 1)}
+                                    disabled={page === 1 || isLoading}
+                                    className="h-9 px-4"
+                                >
+                                    <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                                </Button>
 
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handlePageChange(page + 1)}
-                                disabled={page === metadata.totalPages || isLoading}
-                                className="h-9 px-4"
-                            >
-                                Next <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
+                                <div className="flex items-center gap-1 mx-2">
+                                    <span className="text-sm font-bold text-primary">Page {page}</span>
+                                    <span className="text-sm text-muted-foreground">of {metadata.totalPages}</span>
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePageChange(page + 1)}
+                                    disabled={page === metadata.totalPages || isLoading}
+                                    className="h-9 px-4"
+                                >
+                                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </CardContent>
+                    )
+                }
+            </CardContent >
 
             {/* Edit Employee Sheet */}
-            <Sheet open={!!editingEmployee} onOpenChange={(open) => !open && setEditingEmployee(null)}>
+            < Sheet open={!!editingEmployee
+            } onOpenChange={(open) => !open && setEditingEmployee(null)}>
                 <SheetContent className="sm:max-w-xl overflow-y-auto">
                     <SheetHeader className="border-b pb-4 mb-6">
                         <SheetTitle className="text-2xl font-bold flex items-center gap-2">
@@ -587,7 +622,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                         </form>
                     )}
                 </SheetContent>
-            </Sheet>
-        </Card>
+            </Sheet >
+        </Card >
     );
 }
