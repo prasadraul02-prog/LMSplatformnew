@@ -54,6 +54,8 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         if (organizations.length > 0 && !organizations.find(o => o.name === activeOrg)) {
             setActiveOrg(organizations[0].name);
         }
+        // Clear results when switching orgs to avoid confusion
+        setComparisonResult(null);
     }, [organizations, activeOrg]);
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +69,18 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         const result = await compareOrgSheet(formData, activeOrg);
         if (result.success) {
             setComparisonResult(result.data);
-            toast.success("Analysis complete. Movement detected.");
+
+            const total = (result.data.newEmployees?.length || 0) +
+                (result.data.statusChanges?.length || 0) +
+                (result.data.resignations?.length || 0) +
+                (result.data.transfers?.length || 0) +
+                (result.data.employeeIdChanges?.length || 0);
+
+            if (total > 0) {
+                toast.success(`Analysis complete: ${total} movements detected.`);
+            } else {
+                toast.info("No discrepancies detected against Master Database.");
+            }
         } else {
             toast.error(result.error);
         }
