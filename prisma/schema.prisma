@@ -381,13 +381,16 @@ model MasterEmployee {
   id                String    @id @default(cuid())
   uniqueId          String    @unique // Aadhar or equivalent
   organizationName  String
-  employmentStatus  String    // Permanent / On Trial / Contract
+  employmentStatus  String    // Permanent / On Trial / Contract / Resigned
   employeeId        String?   // Regular Employee ID
+  previousEmployeeId String?  // Track previous Employee ID when it changes
   name              String
   department        String?   // Added in v6.0
   branch            String
   designation       String
   dateOfJoining     DateTime?
+  lastStatusChange  DateTime? // Track when status last changed
+  transferHistory   String?   @db.Text // JSON array of transfer history
   
   // Dynamic columns stored as JSON string
   // This satisfies the "No Fixed Columns" requirement by allowing any extra data
@@ -398,6 +401,7 @@ model MasterEmployee {
 
   @@index([uniqueId])
   @@index([organizationName])
+  @@index([employmentStatus])
 }
 
 model Organization {
@@ -416,3 +420,102 @@ model ColumnMetadata {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Track all employee status changes and movements
+model EmployeeHistory {
+  id                String   @id @default(cuid())
+  uniqueId          String   // Employee's Unique ID
+  changeType        String   // STATUS_CHANGE, TRANSFER, RESIGNATION, REACTIVATION, EMPLOYEE_ID_CHANGE
+  oldValue          String?  @db.Text // JSON of old state
+  newValue          String?  @db.Text // JSON of new state
+  organizationFrom  String?
+  organizationTo    String?
+  remarks           String?  @db.Text
+  processedBy       String?  // System or User ID
+  createdAt         DateTime @default(now())
+  
+  @@index([uniqueId])
+  @@index([changeType])
+  @@index([createdAt])
+}
+
+// Track status changes (Staff ↔ Trial ↔ Contract)
+model StatusChange {
+  id                String   @id @default(cuid())
+  uniqueId          String
+  employeeName      String
+  organizationName  String
+  oldStatus         String
+  newStatus         String
+  oldEmployeeId     String?
+  newEmployeeId     String?
+  effectiveDate     DateTime @default(now())
+  applied           Boolean  @default(false)
+  appliedAt         DateTime?
+  createdAt         DateTime @default(now())
+  
+  @@index([uniqueId])
+  @@index([applied])
+  @@index([organizationName])
+}
+
+// Track inter-organizational transfers
+model OrganizationalTransfer {
+  id                String   @id @default(cuid())
+  uniqueId          String
+  employeeName      String
+  fromOrganization  String
+  toOrganization    String
+  oldEmployeeId     String?
+  newEmployeeId     String?
+  transferType      String   // INTER_ORG, TO_KERALA, INTERNAL
+  effectiveDate     DateTime @default(now())
+  applied           Boolean  @default(false)
+  appliedAt         DateTime?
+  remarks           String?  @db.Text
+  createdAt         DateTime @default(now())
+  
+  @@index([uniqueId])
+  @@index([applied])
+  @@index([fromOrganization])
+  @@index([toOrganization])
+}
+
+// Track resignations from all sources
+model Resignation {
+  id                String   @id @default(cuid())
+  uniqueId          String
+  employeeName      String
+  organizationName  String
+  resignationType   String   // NORMAL, ON_TRIAL_DISCONTINUE, TRANSFER_OUT
+  resignationDate   DateTime @default(now())
+  remarks           String?  @db.Text
+  applied           Boolean  @default(false)
+  appliedAt         DateTime?
+  createdAt         DateTime @default(now())
+  
+  @@index([uniqueId])
+  @@index([applied])
+  @@index([resignationType])
+  @@index([organizationName])
+}
+
+// Automated intimations/alerts
+model Intimation {
+  id                  String   @id @default(cuid())
+  type                String   // STATUS_CHANGE, TRANSFER, RESIGNATION, EMPLOYEE_ID_CHANGE
+  title               String
+  message             String   @db.Text
+  relatedUniqueId     String?
+  relatedEmployeeName String?
+  priority            String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  read                Boolean  @default(false)
+  readAt              DateTime?
+  createdAt           DateTime @default(now())
+  
+  @@index([read])
+  @@index([type])
+  @@index([priority])
+  @@index([createdAt])
+}
+

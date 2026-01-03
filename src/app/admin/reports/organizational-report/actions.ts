@@ -69,6 +69,51 @@ function parseDate(value: any): Date | null {
     return null;
 }
 
+// Helper function to create intimations/alerts
+async function createIntimation(type: string, data: any) {
+    const messages: Record<string, string> = {
+        STATUS_CHANGE: `Employee ${data.name} (${data.uniqueId}) status changed from ${data.oldStatus} to ${data.newStatus} in ${data.organization}`,
+        TRANSFER: `Employee ${data.name} (${data.uniqueId}) transferred from ${data.fromOrg} to ${data.toOrg}`,
+        RESIGNATION: `Employee ${data.name} (${data.uniqueId}) resigned from ${data.organization} - Type: ${data.resignationType}`,
+        EMPLOYEE_ID_CHANGE: `Employee ${data.name} (${data.uniqueId}) ID changed from ${data.oldEmployeeId} to ${data.newEmployeeId}`
+    };
+
+    try {
+        await (prisma as any).intimation.create({
+            data: {
+                type,
+                title: `${type.replace(/_/g, ' ')} Alert`,
+                message: messages[type] || 'Employee data updated',
+                relatedUniqueId: data.uniqueId,
+                relatedEmployeeName: data.name,
+                priority: (type === 'TRANSFER' || type === 'RESIGNATION') ? 'HIGH' : 'NORMAL'
+            }
+        });
+    } catch (error) {
+        console.error('Error creating intimation:', error);
+    }
+}
+
+// Helper function to log employee history
+async function logEmployeeHistory(uniqueId: string, changeType: string, oldValue: any, newValue: any, remarks?: string) {
+    try {
+        await (prisma as any).employeeHistory.create({
+            data: {
+                uniqueId,
+                changeType,
+                oldValue: oldValue ? JSON.stringify(oldValue) : null,
+                newValue: newValue ? JSON.stringify(newValue) : null,
+                organizationFrom: oldValue?.organizationName || oldValue?.organization,
+                organizationTo: newValue?.organizationName || newValue?.organization,
+                remarks,
+                processedBy: 'SYSTEM'
+            }
+        });
+    } catch (error) {
+        console.error('Error logging employee history:', error);
+    }
+}
+
 export async function uploadMasterDatabase(formData: FormData) {
     try {
         const file = formData.get('file') as File;
@@ -283,11 +328,12 @@ export async function deleteMasterEmployee(id: string) {
     }
 }
 
-type ComparisonResult = {
+type EnhancedComparisonResult = {
     newEmployees: any[];
-    resignedEmployees: any[];
     statusChanges: any[];
+    resignations: any[];
     transfers: any[];
+    employeeIdChanges: any[];
 };
 
 export async function compareOrgSheet(formData: FormData, orgName: string) {
@@ -298,19 +344,34 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         const buffer = await file.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: 'buffer' });
 
-        // Auto-detect sheets
+        // Auto-detect all 6 sheet types
         const sheetNames = workbook.SheetNames;
         const findSheet = (keywords: string[]) => sheetNames.find(s => keywords.some(k => s.toLowerCase().includes(k)));
 
         const staffSheetName = findSheet(['staff', 'permanent']);
-        const trialSheetName = findSheet(['trial', 'probation']);
+        const trialSheetName = findSheet(['trial', 'probation']) && !findSheet(['discontinue']) ? findSheet(['trial', 'probation']) : undefined;
         const contractSheetName = findSheet(['contract']);
+
+        // New sheet types
+        const resignedSheetName: string | undefined = sheetNames.find(s =>
+            s.toLowerCase().includes('resign') &&
+            !s.toLowerCase().includes('discontinue')
+        );
+        const trialDiscontinueSheetName: string | undefined = sheetNames.find(s =>
+            s.toLowerCase().includes('trial') &&
+            s.toLowerCase().includes('discontinue')
+        );
+        const transferSheetName: string | undefined = sheetNames.find(s =>
+            s.toLowerCase().includes('transfer') ||
+            s.toLowerCase().includes('kerala')
+        );
 
         if (!staffSheetName && !trialSheetName && !contractSheetName) {
             return { success: false, error: "Could not detect Staff, Trial, or Contract sheets." };
         }
 
-        const parseSheet = (sheetName: string | undefined, status: string) => {
+        // Enhanced parseSheet function
+        const parseSheet = (sheetName: string | undefined, status: string, isResignation: boolean = false) => {
             if (!sheetName) return [];
             const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
             if (json.length === 0) return [];
@@ -334,13 +395,15 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
-            const colDept = mapColumn(['department', 'departments', 'dept', 'function', 'team', 'unit', 'vertical', 'division', 'departnment', 'departmnt', 'departnmant', 'departmant']);
+            const colDept = mapColumn(['department', 'departments', 'dept', 'function', 'team', 'unit', 'vertical', 'division']);
             const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index', 'sr.no']);
             const colOrg = mapColumn(['organization', 'org', 'company', 'firm', 'unitname']);
+            const colRemarks = mapColumn(['remarks', 'remark', 'reason', 'comment', 'note']);
+            const colResignDate = mapColumn(['resigndate', 'resignationdate', 'lastworkingday', 'exitdate']);
 
             if (!colUniqueId || !colName) return [];
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo, colOrg].filter(Boolean) as string[]);
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo, colOrg, colRemarks, colResignDate].filter(Boolean) as string[]);
 
             return json.map((row: any) => {
                 const additionalData: Record<string, any> = {};
@@ -355,9 +418,13 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     additionalData['Mobile Number'] = String(row[colMobile]).trim();
                 }
 
-                // Parse DOJ using robust helper
+                // Parse DOJ
                 const rawDoj = colDoj ? row[colDoj] : null;
                 const doj = rawDoj ? parseDate(rawDoj) : null;
+
+                // Parse resignation date if applicable
+                const rawResignDate = colResignDate ? row[colResignDate] : null;
+                const resignDate = rawResignDate ? parseDate(rawResignDate) : null;
 
                 return {
                     uniqueId: String(row[colUniqueId]).trim(),
@@ -366,86 +433,196 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     department: colDept ? String(row[colDept] || '') : '',
                     branch: colBranch ? String(row[colBranch] || '') : '',
                     designation: colDesignation ? String(row[colDesignation] || '') : '',
-                    dateOfJoining: doj ? doj.toISOString() : null, // Stringify for transfer
+                    dateOfJoining: doj ? doj.toISOString() : null,
                     status: status,
                     srNo: colSrNo ? String(row[colSrNo] || '') : null,
                     organizationName: colOrg ? String(row[colOrg] || '') : '',
+                    remarks: colRemarks ? String(row[colRemarks] || '') : '',
+                    resignationDate: resignDate ? resignDate.toISOString() : null,
+                    isResignation,
                     additionalData: JSON.stringify(additionalData)
                 };
             }).filter(r => r.uniqueId);
         };
 
+        // Parse all sheet types
         const staff = parseSheet(staffSheetName, 'Active');
         const trial = parseSheet(trialSheetName, 'Active - On Trial');
         const contract = parseSheet(contractSheetName, 'Active - Contract');
+        const resigned = parseSheet(resignedSheetName, 'Resigned', true);
+        const trialDiscontinue = parseSheet(trialDiscontinueSheetName, 'Resigned - Trial Discontinue', true);
+        const transferred = parseSheet(transferSheetName, 'Transferred', false);
 
-        const allUploaded = [...staff, ...trial, ...contract];
-        const uploadedIds = new Set(allUploaded.map(e => e.uniqueId));
+        const allActive = [...staff, ...trial, ...contract];
+        const allResigned = [...resigned, ...trialDiscontinue];
+        const activeIds = new Set(allActive.map(e => e.uniqueId));
+        const resignedIds = new Set(allResigned.map(e => e.uniqueId));
+        const transferredIds = new Set(transferred.map(e => e.uniqueId));
 
         // Fetch Master Data
         const masterEmployees = await (prisma as any).masterEmployee.findMany();
         const masterMap = new Map<string, any>(masterEmployees.map((e: any) => [e.uniqueId, e]));
 
-
-        const result: ComparisonResult = {
+        const result: EnhancedComparisonResult = {
             newEmployees: [],
-            resignedEmployees: [],
             statusChanges: [],
-            transfers: []
+            resignations: [],
+            transfers: [],
+            employeeIdChanges: []
         };
 
-        // 1. New Employees
-        for (const emp of allUploaded) {
+        // 1. New Employees (not in Master DB)
+        for (const emp of allActive) {
             if (!masterMap.has(emp.uniqueId)) {
-                result.newEmployees.push(emp);
+                result.newEmployees.push({
+                    ...emp,
+                    organization: orgName
+                });
             }
         }
 
-        // 2. Resigned Employees (In Master for THIS Org, but not in Uploaded)
-        // We only check for the current organization in Master
-        for (const emp of masterEmployees) {
-            if (emp.organizationName === orgName && !uploadedIds.has(emp.uniqueId)) {
-                result.resignedEmployees.push(emp);
+        // 2. Resignations from sheets
+        for (const emp of allResigned) {
+            const masterEmp = masterMap.get(emp.uniqueId);
+            if (masterEmp && masterEmp.organizationName === orgName) {
+                result.resignations.push({
+                    uniqueId: emp.uniqueId,
+                    name: emp.name,
+                    organization: orgName,
+                    resignationType: emp.status === 'Resigned - Trial Discontinue' ? 'ON_TRIAL_DISCONTINUE' : 'NORMAL',
+                    remarks: emp.remarks || (emp.status === 'Resigned - Trial Discontinue' ? 'Resigned during trial period' : ''),
+                    resignationDate: emp.resignationDate
+                });
             }
         }
 
+        // 3. Status Changes (bidirectional)
         for (const emp of staff) {
             const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && (masterEmp.employmentStatus === 'Active - On Trial' || masterEmp.employmentStatus === 'On Trial')) {
-                result.statusChanges.push({
-                    ...emp,
-                    oldStatus: masterEmp.employmentStatus,
-                    newStatus: 'Active'
-                });
-            } else if (masterEmp && (masterEmp.employmentStatus === 'Active - Contract' || masterEmp.employmentStatus === 'Contract')) {
-                result.statusChanges.push({
-                    ...emp,
-                    oldStatus: masterEmp.employmentStatus,
-                    newStatus: 'Active'
-                });
+            if (masterEmp && masterEmp.organizationName === orgName) {
+                // On Trial → Staff
+                if (masterEmp.employmentStatus === 'Active - On Trial' || masterEmp.employmentStatus === 'On Trial') {
+                    result.statusChanges.push({
+                        uniqueId: emp.uniqueId,
+                        name: emp.name,
+                        oldStatus: masterEmp.employmentStatus,
+                        newStatus: 'Active',
+                        oldEmployeeId: masterEmp.employeeId,
+                        newEmployeeId: emp.employeeId,
+                        organization: orgName
+                    });
+                }
+                // Contract → Staff
+                else if (masterEmp.employmentStatus === 'Active - Contract' || masterEmp.employmentStatus === 'Contract') {
+                    result.statusChanges.push({
+                        uniqueId: emp.uniqueId,
+                        name: emp.name,
+                        oldStatus: masterEmp.employmentStatus,
+                        newStatus: 'Active',
+                        oldEmployeeId: masterEmp.employeeId,
+                        newEmployeeId: emp.employeeId,
+                        organization: orgName
+                    });
+                }
             }
         }
 
-        // 3b. Status Change (Staff -> On Trial)
         for (const emp of trial) {
             const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent')) {
-                result.statusChanges.push({
-                    ...emp,
-                    oldStatus: masterEmp.employmentStatus,
-                    newStatus: 'Active - On Trial'
+            if (masterEmp && masterEmp.organizationName === orgName) {
+                // Staff → On Trial
+                if (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent') {
+                    result.statusChanges.push({
+                        uniqueId: emp.uniqueId,
+                        name: emp.name,
+                        oldStatus: masterEmp.employmentStatus,
+                        newStatus: 'Active - On Trial',
+                        oldEmployeeId: masterEmp.employeeId,
+                        newEmployeeId: emp.employeeId,
+                        organization: orgName
+                    });
+                }
+                // Contract → On Trial
+                else if (masterEmp.employmentStatus === 'Active - Contract' || masterEmp.employmentStatus === 'Contract') {
+                    result.statusChanges.push({
+                        uniqueId: emp.uniqueId,
+                        name: emp.name,
+                        oldStatus: masterEmp.employmentStatus,
+                        newStatus: 'Active - On Trial',
+                        oldEmployeeId: masterEmp.employeeId,
+                        newEmployeeId: emp.employeeId,
+                        organization: orgName
+                    });
+                }
+            }
+        }
+
+        for (const emp of contract) {
+            const masterEmp = masterMap.get(emp.uniqueId);
+            if (masterEmp && masterEmp.organizationName === orgName) {
+                // Staff → Contract
+                if (masterEmp.employmentStatus === 'Active' || masterEmp.employmentStatus === 'Permanent') {
+                    result.statusChanges.push({
+                        uniqueId: emp.uniqueId,
+                        name: emp.name,
+                        oldStatus: masterEmp.employmentStatus,
+                        newStatus: 'Active - Contract',
+                        oldEmployeeId: masterEmp.employeeId,
+                        newEmployeeId: emp.employeeId,
+                        organization: orgName
+                    });
+                }
+            }
+        }
+
+        // 4. Inter-Organizational Transfers
+        for (const emp of allActive) {
+            const masterEmp = masterMap.get(emp.uniqueId);
+            if (masterEmp && masterEmp.organizationName !== orgName && masterEmp.organizationName !== '') {
+                result.transfers.push({
+                    uniqueId: emp.uniqueId,
+                    name: emp.name,
+                    fromOrg: masterEmp.organizationName,
+                    toOrg: orgName,
+                    oldEmployeeId: masterEmp.employeeId,
+                    newEmployeeId: emp.employeeId,
+                    transferType: 'INTER_ORG'
                 });
             }
         }
 
-        // 4. Inter-Org Transfer
-        for (const emp of allUploaded) {
+        // 5. Transfer to Kerala/Other locations
+        for (const emp of transferred) {
             const masterEmp = masterMap.get(emp.uniqueId);
-            if (masterEmp && masterEmp.organizationName !== orgName) {
+            if (masterEmp && masterEmp.organizationName === orgName) {
                 result.transfers.push({
-                    ...emp,
-                    oldOrg: masterEmp.organizationName,
-                    newOrg: orgName
+                    uniqueId: emp.uniqueId,
+                    name: emp.name,
+                    fromOrg: orgName,
+                    toOrg: emp.branch || 'Kerala',
+                    oldEmployeeId: masterEmp.employeeId,
+                    newEmployeeId: emp.employeeId,
+                    transferType: 'TO_KERALA',
+                    remarks: emp.remarks
+                });
+            }
+        }
+
+        // 6. Employee ID Changes (without status change)
+        for (const emp of allActive) {
+            const masterEmp = masterMap.get(emp.uniqueId);
+            if (masterEmp &&
+                masterEmp.organizationName === orgName &&
+                emp.employeeId &&
+                masterEmp.employeeId &&
+                emp.employeeId !== masterEmp.employeeId &&
+                !result.statusChanges.some(sc => sc.uniqueId === emp.uniqueId)) {
+                result.employeeIdChanges.push({
+                    uniqueId: emp.uniqueId,
+                    name: emp.name,
+                    oldEmployeeId: masterEmp.employeeId,
+                    newEmployeeId: emp.employeeId,
+                    organization: orgName
                 });
             }
         }
@@ -454,84 +631,205 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
 
     } catch (error) {
         console.error("Error comparing sheets:", error);
-        return { success: false, error: "Failed to compare sheets" };
+        return { success: false, error: "Failed to compare sheets: " + (error as Error).message };
     }
 }
 
 export async function applyChanges(changes: {
     newEmployees?: any[],
     statusChanges?: any[],
+    resignations?: any[],
     transfers?: any[],
-    resignedEmployees?: any[],
+    employeeIdChanges?: any[],
     orgName: string
 }) {
     try {
         await prisma.$transaction(async (tx) => {
-            // Deactivate Resigned Employees
-            if (changes.resignedEmployees) {
-                for (const emp of changes.resignedEmployees) {
-                    await (tx as any).masterEmployee.update({
-                        where: { uniqueId: emp.uniqueId },
-                        data: { employmentStatus: 'Deactive' }
-                    });
-                }
-            }
-
-            // Add New Employees
+            // 1. Add New Employees
             if (changes.newEmployees) {
                 for (const emp of changes.newEmployees) {
-                    await (tx as any).masterEmployee.create({
+                    const newEmp = await (tx as any).masterEmployee.create({
                         data: {
                             uniqueId: emp.uniqueId,
                             name: emp.name,
                             organizationName: changes.orgName,
                             employmentStatus: emp.status,
                             employeeId: emp.employeeId,
-                            department: emp.department, // Added in v6.0
+                            department: emp.department,
                             branch: emp.branch || changes.orgName,
                             designation: emp.designation || 'Unknown',
                             dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
                             additionalData: emp.additionalData
                         }
                     });
+
+                    await logEmployeeHistory(emp.uniqueId, 'NEW_EMPLOYEE', null, newEmp);
                 }
             }
 
-            // Update Status
+            // 2. Update Status Changes (Staff ↔ Trial ↔ Contract)
             if (changes.statusChanges) {
-                for (const emp of changes.statusChanges) {
-                    await (tx as any).masterEmployee.update({
-                        where: { uniqueId: emp.uniqueId },
-                        data: {
-                            employmentStatus: emp.newStatus,
-                            employeeId: emp.employeeId,
-                            department: emp.department // Update department during status transition
-                        }
+                for (const change of changes.statusChanges) {
+                    const masterEmp = await (tx as any).masterEmployee.findUnique({
+                        where: { uniqueId: change.uniqueId }
                     });
+
+                    if (masterEmp) {
+                        await (tx as any).masterEmployee.update({
+                            where: { uniqueId: change.uniqueId },
+                            data: {
+                                employmentStatus: change.newStatus,
+                                employeeId: change.newEmployeeId || masterEmp.employeeId,
+                                previousEmployeeId: change.oldEmployeeId || masterEmp.employeeId,
+                                lastStatusChange: new Date()
+                            }
+                        });
+
+                        await (tx as any).statusChange.create({
+                            data: {
+                                uniqueId: change.uniqueId,
+                                employeeName: change.name,
+                                organizationName: change.organization,
+                                oldStatus: change.oldStatus,
+                                newStatus: change.newStatus,
+                                oldEmployeeId: change.oldEmployeeId,
+                                newEmployeeId: change.newEmployeeId,
+                                applied: true,
+                                appliedAt: new Date()
+                            }
+                        });
+
+                        await createIntimation('STATUS_CHANGE', change);
+                        await logEmployeeHistory(change.uniqueId, 'STATUS_CHANGE',
+                            { status: change.oldStatus, employeeId: change.oldEmployeeId },
+                            { status: change.newStatus, employeeId: change.newEmployeeId }
+                        );
+                    }
                 }
             }
 
-            // Transfers
-            if (changes.transfers) {
-                for (const emp of changes.transfers) {
-                    await (tx as any).masterEmployee.update({
-                        where: { uniqueId: emp.uniqueId },
-                        data: {
-                            organizationName: changes.orgName,
-                            employmentStatus: emp.status,
-                            employeeId: emp.employeeId,
-                            department: emp.department // Update department during transfer
-                        }
+            // 3. Process Resignations
+            if (changes.resignations) {
+                for (const resignation of changes.resignations) {
+                    const masterEmp = await (tx as any).masterEmployee.findUnique({
+                        where: { uniqueId: resignation.uniqueId }
                     });
+
+                    if (masterEmp) {
+                        await (tx as any).masterEmployee.update({
+                            where: { uniqueId: resignation.uniqueId },
+                            data: {
+                                employmentStatus: resignation.resignationType === 'ON_TRIAL_DISCONTINUE'
+                                    ? 'Resigned - Trial Discontinue'
+                                    : 'Resigned'
+                            }
+                        });
+
+                        await (tx as any).resignation.create({
+                            data: {
+                                uniqueId: resignation.uniqueId,
+                                employeeName: resignation.name,
+                                organizationName: resignation.organization,
+                                resignationType: resignation.resignationType,
+                                remarks: resignation.remarks,
+                                resignationDate: resignation.resignationDate ? new Date(resignation.resignationDate) : new Date(),
+                                applied: true,
+                                appliedAt: new Date()
+                            }
+                        });
+
+                        await createIntimation('RESIGNATION', resignation);
+                        await logEmployeeHistory(resignation.uniqueId, 'RESIGNATION',
+                            { status: masterEmp.employmentStatus },
+                            { status: 'Resigned', type: resignation.resignationType },
+                            resignation.remarks
+                        );
+                    }
+                }
+            }
+
+            // 4. Inter-Org and Shared Transfers
+            if (changes.transfers) {
+                for (const transfer of changes.transfers) {
+                    const existing = await (tx as any).masterEmployee.findUnique({
+                        where: { uniqueId: transfer.uniqueId }
+                    });
+
+                    if (existing) {
+                        const history = existing.transferHistory ? JSON.parse(existing.transferHistory) : [];
+                        history.push({
+                            from: transfer.fromOrg,
+                            to: transfer.toOrg,
+                            date: new Date().toISOString(),
+                            type: transfer.transferType
+                        });
+
+                        await (tx as any).masterEmployee.update({
+                            where: { uniqueId: transfer.uniqueId },
+                            data: {
+                                organizationName: transfer.toOrg,
+                                employeeId: transfer.newEmployeeId || existing.employeeId,
+                                previousEmployeeId: transfer.oldEmployeeId || existing.employeeId,
+                                transferHistory: JSON.stringify(history)
+                            }
+                        });
+
+                        await (tx as any).organizationalTransfer.create({
+                            data: {
+                                uniqueId: transfer.uniqueId,
+                                employeeName: transfer.name,
+                                fromOrganization: transfer.fromOrg,
+                                toOrganization: transfer.toOrg,
+                                oldEmployeeId: transfer.oldEmployeeId,
+                                newEmployeeId: transfer.newEmployeeId,
+                                transferType: transfer.transferType,
+                                remarks: transfer.remarks,
+                                applied: true,
+                                appliedAt: new Date()
+                            }
+                        });
+
+                        await createIntimation('TRANSFER', transfer);
+                        await logEmployeeHistory(transfer.uniqueId, 'TRANSFER',
+                            { organization: transfer.fromOrg, employeeId: transfer.oldEmployeeId },
+                            { organization: transfer.toOrg, employeeId: transfer.newEmployeeId },
+                            transfer.remarks
+                        );
+                    }
+                }
+            }
+
+            // 5. Employee ID Changes
+            if (changes.employeeIdChanges) {
+                for (const change of changes.employeeIdChanges) {
+                    const masterEmp = await (tx as any).masterEmployee.findUnique({
+                        where: { uniqueId: change.uniqueId }
+                    });
+
+                    if (masterEmp) {
+                        await (tx as any).masterEmployee.update({
+                            where: { uniqueId: change.uniqueId },
+                            data: {
+                                employeeId: change.newEmployeeId,
+                                previousEmployeeId: change.oldEmployeeId
+                            }
+                        });
+
+                        await createIntimation('EMPLOYEE_ID_CHANGE', change);
+                        await logEmployeeHistory(change.uniqueId, 'EMPLOYEE_ID_CHANGE',
+                            { employeeId: change.oldEmployeeId },
+                            { employeeId: change.newEmployeeId }
+                        );
+                    }
                 }
             }
         });
 
         revalidatePath('/admin/reports/organizational-report');
-        return { success: true, message: "Changes applied successfully" };
+        return { success: true, message: "Changes applied successfully with intimations and history logged." };
     } catch (error) {
         console.error("Error applying changes:", error);
-        return { success: false, error: "Failed to apply changes" };
+        return { success: false, error: "Failed to apply changes: " + (error as Error).message };
     }
 }
 
@@ -642,5 +940,80 @@ export async function getColumnOrder() {
     } catch (error) {
         console.error("Error fetching column order:", error);
         return { success: false, error: "Failed to fetch column order" };
+    }
+}
+// --- Advanced Synchronization API ---
+
+export async function getIntimations(unreadOnly: boolean = false) {
+    try {
+        const where = unreadOnly ? { read: false } : {};
+        const intimations = await (prisma as any).intimation.findMany({
+            where,
+            orderBy: [
+                { read: 'asc' },
+                { priority: 'desc' },
+                { createdAt: 'desc' }
+            ],
+            take: 100
+        });
+        return { success: true, data: intimations };
+    } catch (error) {
+        console.error("Error fetching intimations:", error);
+        return { success: false, error: "Failed to fetch intimations" };
+    }
+}
+
+export async function markIntimationRead(id: string) {
+    try {
+        await (prisma as any).intimation.update({
+            where: { id },
+            data: { read: true, readAt: new Date() }
+        });
+        revalidatePath('/admin/reports/organizational-report');
+        return { success: true };
+    } catch (error) {
+        console.error("Error marking intimation as read:", error);
+        return { success: false, error: "Failed to update intimation" };
+    }
+}
+
+export async function getEmployeeHistory(uniqueId: string) {
+    try {
+        const history = await (prisma as any).employeeHistory.findMany({
+            where: { uniqueId },
+            orderBy: { createdAt: 'desc' }
+        });
+        return { success: true, data: history };
+    } catch (error) {
+        console.error("Error fetching employee history:", error);
+        return { success: false, error: "Failed to fetch employee history" };
+    }
+}
+
+export async function getTransfers(applied: boolean | null = null) {
+    try {
+        const where = applied !== null ? { applied } : {};
+        const transfers = await (prisma as any).organizationalTransfer.findMany({
+            where,
+            orderBy: { createdAt: 'desc' }
+        });
+        return { success: true, data: transfers };
+    } catch (error) {
+        console.error("Error fetching transfers:", error);
+        return { success: false, error: "Failed to fetch transfers" };
+    }
+}
+
+export async function getStatusChanges(applied: boolean | null = null) {
+    try {
+        const where = applied !== null ? { applied } : {};
+        const changes = await (prisma as any).statusChange.findMany({
+            where,
+            orderBy: { createdAt: 'desc' }
+        });
+        return { success: true, data: changes };
+    } catch (error) {
+        console.error("Error fetching status changes:", error);
+        return { success: false, error: "Failed to fetch status changes" };
     }
 }

@@ -2,11 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { compareOrgSheet, applyChanges } from '../actions';
 import { toast } from "sonner";
-import { Loader2, Upload, ArrowRight, UserPlus, UserMinus } from "lucide-react";
+import {
+    Loader2,
+    Upload,
+    ArrowRight,
+    UserPlus,
+    UserMinus,
+    RefreshCw,
+    UserCheck,
+    AlertCircle,
+    Info,
+    MoveRight,
+    Search,
+    FileSpreadsheet
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface Organization {
     id: string;
@@ -36,7 +50,6 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
     const [comparisonResult, setComparisonResult] = useState<any>(null);
     const [isApplying, setIsApplying] = useState(false);
 
-    // Update active org if organizations change (e.g. after add/delete)
     useEffect(() => {
         if (organizations.length > 0 && !organizations.find(o => o.name === activeOrg)) {
             setActiveOrg(organizations[0].name);
@@ -54,7 +67,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         const result = await compareOrgSheet(formData, activeOrg);
         if (result.success) {
             setComparisonResult(result.data);
-            toast.success("Analysis complete. Please review changes.");
+            toast.success("Analysis complete. Movement detected.");
         } else {
             toast.error(result.error);
         }
@@ -62,27 +75,20 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         e.target.value = '';
     };
 
-    const handleApply = async (type: 'new' | 'status' | 'transfer' | 'resigned', items: any[]) => {
+    const handleApply = async (type: string, items: any[]) => {
         if (items.length === 0) return;
 
         setIsApplying(true);
         const payload: any = { orgName: activeOrg };
-        if (type === 'new') payload.newEmployees = items;
-        if (type === 'status') payload.statusChanges = items;
-        if (type === 'transfer') payload.transfers = items;
-        if (type === 'resigned') payload.resignedEmployees = items;
+        payload[type] = items;
 
         const result = await applyChanges(payload);
         if (result.success) {
             toast.success(result.message);
-            // Remove applied items from local state
             setComparisonResult((prev: any) => {
                 if (!prev) return null;
                 const newState = { ...prev };
-                if (type === 'new') newState.newEmployees = [];
-                if (type === 'status') newState.statusChanges = [];
-                if (type === 'transfer') newState.transfers = [];
-                if (type === 'resigned') newState.resignedEmployees = [];
+                newState[type] = [];
                 return newState;
             });
         } else {
@@ -91,63 +97,91 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         setIsApplying(false);
     };
 
-    const getAnalyserName = (name: string) => {
-        const lower = name.toLowerCase();
-        if (lower.includes('trucking')) return `Autobahn Trucking Analyser`;
-        if (lower.includes('terrago')) return `Autobahn TerraGo Analyser`;
-        if (lower.includes('mumbai')) return `Autobahn VoltiGo Mumbai Analyser`;
-        if (lower.includes('ambegaon')) return `Autobahn VoltiGo Ambegaon Analyser`;
-        return `${name} Analyser`;
-    };
-
     if (organizations.length === 0) {
         return (
             <Card>
                 <CardContent className="p-8 text-center text-muted-foreground">
-                    No organizations configured. Please add an organization in the settings below.
+                    No organizations configured.
                 </CardContent>
             </Card>
         );
     }
 
+    const totalChanges = comparisonResult ? (
+        comparisonResult.newEmployees.length +
+        comparisonResult.statusChanges.length +
+        comparisonResult.resignations.length +
+        comparisonResult.transfers.length +
+        comparisonResult.employeeIdChanges.length
+    ) : 0;
+
     return (
         <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Organizational Analyser</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-800">Organizational Movement Analyser</h2>
+                    <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mt-1">
+                        Bi-Directional Synchronization & Audit v2.0
+                    </p>
+                </div>
+                {comparisonResult && totalChanges > 0 && (
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 px-4 py-1.5 text-sm font-bold gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        {totalChanges} Pending Changes Detected
+                    </Badge>
+                )}
+            </div>
+
             <Tabs value={activeOrg} onValueChange={setActiveOrg} className="w-full">
-                <TabsList className="flex flex-wrap h-auto gap-2 bg-transparent p-0">
+                <TabsList className="flex flex-wrap h-auto gap-2 bg-slate-100/50 p-1 rounded-xl border mb-6">
                     {organizations.map(org => (
                         <TabsTrigger
                             key={org.id}
                             value={org.name}
-                            className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border bg-background"
+                            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 font-bold transition-all"
                         >
-                            {getAnalyserName(org.name)}
+                            {org.name}
                         </TabsTrigger>
                     ))}
                 </TabsList>
 
                 {organizations.map(org => (
-                    <TabsContent key={org.id} value={org.name} className="mt-6 space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>{getAnalyserName(org.name)}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-lg bg-muted/10">
-                                    <div className="text-center space-y-4">
-                                        <p className="text-muted-foreground">Upload the latest organizational sheet (Staff, Trial, Contract)</p>
-                                        <div className="relative inline-block">
-                                            <input
-                                                type="file"
-                                                accept=".xlsx, .xls"
-                                                onChange={handleFileUpload}
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                disabled={isAnalyzing}
-                                            />
-                                            <Button size="lg" disabled={isAnalyzing}>
-                                                {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                                Import & Analyze Sheet
-                                            </Button>
+                    <TabsContent key={org.id} value={org.name} className="space-y-6 animate-in fade-in duration-500">
+                        <Card className="border-2 border-dashed border-slate-200 bg-slate-50/50 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-12 opacity-5 scale-150 rotate-12 transition-transform group-hover:scale-175 group-hover:rotate-6">
+                                <FileSpreadsheet className="h-32 w-32" />
+                            </div>
+                            <CardContent className="p-10">
+                                <div className="flex flex-col items-center text-center space-y-4 max-w-lg mx-auto">
+                                    <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-2">
+                                        <Upload className="h-8 w-8 text-primary" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-bold">Synchronize {org.name}</h3>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            Upload your latest Excel file with Staff, On Trial, or Contract sheets.
+                                            The system will automatically detect movement, resignations and ID changes.
+                                        </p>
+                                    </div>
+                                    <div className="relative inline-block mt-4">
+                                        <input
+                                            type="file"
+                                            accept=".xlsx, .xls"
+                                            onChange={handleFileUpload}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                            disabled={isAnalyzing}
+                                        />
+                                        <Button size="lg" className="rounded-xl px-10 h-12 font-bold shadow-lg shadow-primary/20" disabled={isAnalyzing}>
+                                            {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Search className="mr-2 h-5 w-5" />}
+                                            {isAnalyzing ? 'Analysing Sheets...' : 'Start Comparative Analysis'}
+                                        </Button>
+                                    </div>
+                                    <div className="flex gap-4 pt-4">
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-green-500" /> Multi-Sheet Support
+                                        </div>
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> Bidirectional Detection
                                         </div>
                                     </div>
                                 </div>
@@ -155,282 +189,265 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                         </Card>
 
                         {comparisonResult && (
-                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-                                {/* New Employees */}
-                                {comparisonResult.newEmployees.length > 0 && (
-                                    <Card className="border-l-4 border-l-success">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center text-success">
-                                                <UserPlus className="mr-2 h-5 w-5" />
-                                                New Employees Found ({comparisonResult.newEmployees.length})
-                                            </CardTitle>
-                                        </CardHeader>
-                                        <CardContent>
-                                            <p className="mb-4 text-sm text-muted-foreground">
-                                                These employees are present in the uploaded sheet but NOT in the Master Database.
-                                            </p>
-                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
-                                                <table className="w-full text-xs text-left">
-                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
-                                                        <tr>
-                                                            <th className="p-3 font-bold border-b">Sr. No</th>
-                                                            <th className="p-3 font-bold border-b">Unique ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee Name</th>
-                                                            <th className="p-3 font-bold border-b">Organization</th>
-                                                            <th className="p-3 font-bold border-b">DOJ</th>
-                                                            <th className="p-3 font-bold border-b">Branch</th>
-                                                            <th className="p-3 font-bold border-b">Designation</th>
-                                                            <th className="p-3 font-bold border-b">Status</th>
-                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {comparisonResult.newEmployees.map((emp: any, i: number) => {
-                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-                                                            return (
-                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
-                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
-                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
-                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
-                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
-                                                                    <td className="p-3">{activeOrg}</td>
-                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
-                                                                    <td className="p-3">{emp.branch}</td>
-                                                                    <td className="p-3">{emp.designation}</td>
-                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>
-                                                                    <td className="p-3">
-                                                                        {extra['Mobile Number'] || '-'}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <Button onClick={() => handleApply('new', comparisonResult.newEmployees)} disabled={isApplying}>
-                                                    Yes, Add to Master Database
-                                                </Button>
-                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, newEmployees: [] })}>
-                                                    No, Ignore
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                )}
+                            <div className="grid grid-cols-1 gap-8 animate-in slide-in-from-bottom-6 duration-700">
 
-                                {/* Resigned Employees */}
-                                {comparisonResult.resignedEmployees.length > 0 && (
-                                    <Card className="border-l-4 border-l-destructive">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center text-destructive">
-                                                <UserMinus className="mr-2 h-5 w-5" />
-                                                Resigned Employees ({comparisonResult.resignedEmployees.length})
-                                            </CardTitle>
+                                {/* New Employees Section */}
+                                {comparisonResult.newEmployees && comparisonResult.newEmployees.length > 0 && (
+                                    <Card className="border-l-4 border-l-green-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-green-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-green-100 rounded-lg">
+                                                        <UserPlus className="h-5 w-5 text-green-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-green-900">New Onboarding Required</CardTitle>
+                                                        <CardDescription>Detected {comparisonResult.newEmployees.length} employees not in Master HR Database.</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" className="bg-green-600 hover:bg-green-700 font-bold whitespace-nowrap" onClick={() => handleApply('newEmployees', comparisonResult.newEmployees)} disabled={isApplying}>
+                                                    Approve & Onboard All
+                                                </Button>
+                                            </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <p className="mb-4 text-sm text-muted-foreground">
-                                                These employees are in the Master Database for {org.name} but NOT in the uploaded sheet.
-                                            </p>
-                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
-                                                <table className="w-full text-xs text-left">
-                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
-                                                        <tr>
-                                                            <th className="p-3 font-bold border-b">Sr. No</th>
-                                                            <th className="p-3 font-bold border-b">Unique ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee Name</th>
-                                                            <th className="p-3 font-bold border-b">Organization</th>
-                                                            <th className="p-3 font-bold border-b">DOJ</th>
-                                                            <th className="p-3 font-bold border-b">Branch</th>
-                                                            <th className="p-3 font-bold border-b">Designation</th>
-                                                            <th className="p-3 font-bold border-b">Status</th>
-                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Unique ID</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Name</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Designation</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Branch</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.newEmployees.map((emp: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3 font-mono font-bold">{emp.uniqueId}</td>
+                                                            <td className="p-3 font-semibold text-slate-900">{emp.name}</td>
+                                                            <td className="p-3">{emp.designation}</td>
+                                                            <td className="p-3 text-muted-foreground">{emp.branch}</td>
+                                                            <td className="p-3">
+                                                                <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] px-1 uppercase">{emp.status}</Badge>
+                                                            </td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {comparisonResult.resignedEmployees.map((emp: any, i: number) => {
-                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-                                                            return (
-                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
-                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
-                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
-                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
-                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
-                                                                    <td className="p-3">{emp.organizationName}</td>
-                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
-                                                                    <td className="p-3">{emp.branch}</td>
-                                                                    <td className="p-3">{emp.designation}</td>
-                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.employmentStatus}</td>
-                                                                    <td className="p-3">
-                                                                        {(() => {
-                                                                            const m = Object.keys(extra).find(k => ['mobile', 'phone', 'contact', 'tele'].some(kw => k.toLowerCase().includes(kw)));
-                                                                            return m ? extra[m] : '-';
-                                                                        })()}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <Button
-                                                    variant="destructive"
-                                                    className="font-bold"
-                                                    onClick={() => handleApply('resigned', comparisonResult.resignedEmployees)}
-                                                    disabled={isApplying}
-                                                >
-                                                    {isApplying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserMinus className="mr-2 h-4 w-4" />}
-                                                    Yes, Mark as Deactive in Master Database
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    onClick={() => setComparisonResult({ ...comparisonResult, resignedEmployees: [] })}
-                                                >
-                                                    No, Ignore
-                                                </Button>
-                                            </div>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </CardContent>
                                     </Card>
                                 )}
 
                                 {/* Status Changes */}
-                                {comparisonResult.statusChanges.length > 0 && (
-                                    <Card className="border-l-4 border-l-primary">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center text-primary">
-                                                <ArrowRight className="mr-2 h-5 w-5" />
-                                                Status Changes ({comparisonResult.statusChanges.length})
-                                            </CardTitle>
+                                {comparisonResult.statusChanges && comparisonResult.statusChanges.length > 0 && (
+                                    <Card className="border-l-4 border-l-blue-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-blue-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                                        <RefreshCw className="h-5 w-5 text-blue-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-blue-900">Employment Transitions</CardTitle>
+                                                        <CardDescription>{comparisonResult.statusChanges.length} employees requiring status updates (Staff ↔ Trial ↔ Contract).</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 font-bold whitespace-nowrap" onClick={() => handleApply('statusChanges', comparisonResult.statusChanges)} disabled={isApplying}>
+                                                    Confirm Transitions
+                                                </Button>
+                                            </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <p className="mb-4 text-sm text-muted-foreground">
-                                                Employees changing status (e.g., Trial to Staff, Staff to Trial, or Contract to Staff).
-                                            </p>
-                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
-                                                <table className="w-full text-xs text-left">
-                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
-                                                        <tr>
-                                                            <th className="p-3 font-bold border-b">Sr. No</th>
-                                                            <th className="p-3 font-bold border-b">Unique ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee Name</th>
-                                                            <th className="p-3 font-bold border-b">Organization</th>
-                                                            <th className="p-3 font-bold border-b">DOJ</th>
-                                                            <th className="p-3 font-bold border-b">Branch</th>
-                                                            <th className="p-3 font-bold border-b">Designation</th>
-                                                            <th className="p-3 font-bold border-b">Status</th>
-                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Transition</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">ID Update</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.statusChanges.map((change: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3">
+                                                                <div className="font-bold text-slate-900">{change.name}</div>
+                                                                <div className="text-[10px] font-mono text-muted-foreground">{change.uniqueId}</div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Badge variant="outline" className="opacity-50 line-through text-[10px] uppercase">{change.oldStatus}</Badge>
+                                                                    <MoveRight className="h-3 w-3 text-slate-400" />
+                                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-[10px] px-1 uppercase">{change.newStatus}</Badge>
+                                                                </div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                {change.newEmployeeId && change.newEmployeeId !== change.oldEmployeeId ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-muted-foreground line-through font-mono">{change.oldEmployeeId}</span>
+                                                                        <ArrowRight className="h-3 w-3 text-primary" />
+                                                                        <span className="font-bold text-primary font-mono">{change.newEmployeeId}</span>
+                                                                    </div>
+                                                                ) : <span className="text-slate-400 italic">No change</span>}
+                                                            </td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {comparisonResult.statusChanges.map((emp: any, i: number) => {
-                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-                                                            return (
-                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
-                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
-                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
-                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
-                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
-                                                                    <td className="p-3">{activeOrg}</td>
-                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
-                                                                    <td className="p-3">{emp.branch}</td>
-                                                                    <td className="p-3">{emp.designation}</td>
-                                                                    <td className="p-3 text-xs font-bold uppercase">
-                                                                        <span className="text-destructive">{emp.oldStatus}</span>
-                                                                        <ArrowRight className="inline mx-2 h-3 w-3" />
-                                                                        <span className="text-success">{emp.newStatus}</span>
-                                                                    </td>
-                                                                    <td className="p-3">
-                                                                        {extra['Mobile Number'] || '-'}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <Button onClick={() => handleApply('status', comparisonResult.statusChanges)} disabled={isApplying}>
-                                                    Yes, Update Status
-                                                </Button>
-                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, statusChanges: [] })}>
-                                                    No, Keep Old Status
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Resignations */}
+                                {comparisonResult.resignations && comparisonResult.resignations.length > 0 && (
+                                    <Card className="border-l-4 border-l-red-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-red-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-red-100 rounded-lg">
+                                                        <UserMinus className="h-5 w-5 text-red-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-red-900">Resignations & Exits</CardTitle>
+                                                        <CardDescription>Detected {comparisonResult.resignations.length} exits or discontinued trials.</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button variant="destructive" size="sm" className="font-bold whitespace-nowrap" onClick={() => handleApply('resignations', comparisonResult.resignations)} disabled={isApplying}>
+                                                    Process Exits
                                                 </Button>
                                             </div>
+                                        </CardHeader>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Type</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Details</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.resignations.map((exit: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3">
+                                                                <div className="font-bold text-slate-900">{exit.name}</div>
+                                                                <div className="text-[10px] font-mono text-muted-foreground">{exit.uniqueId}</div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <Badge variant="outline" className={exit.resignationType === 'ON_TRIAL_DISCONTINUE' ? 'border-orange-200 text-orange-700 bg-orange-50 text-[10px]' : 'border-red-200 text-red-700 bg-red-50 text-[10px]'}>
+                                                                    {exit.resignationType === 'ON_TRIAL_DISCONTINUE' ? 'TR. DISCONTINUE' : 'RESIGNED'}
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <div className="text-xs font-medium">{formatDate(exit.resignationDate)}</div>
+                                                                <div className="text-[10px] text-slate-500 italic truncate max-w-[150px]">{exit.remarks || '-'}</div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </CardContent>
                                     </Card>
                                 )}
 
                                 {/* Transfers */}
-                                {comparisonResult.transfers.length > 0 && (
-                                    <Card className="border-l-4 border-l-accent">
-                                        <CardHeader>
-                                            <CardTitle className="flex items-center text-accent">
-                                                <ArrowRight className="mr-2 h-5 w-5" />
-                                                Inter-Organization Transfers ({comparisonResult.transfers.length})
-                                            </CardTitle>
+                                {comparisonResult.transfers && comparisonResult.transfers.length > 0 && (
+                                    <Card className="border-l-4 border-l-purple-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-purple-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-purple-100 rounded-lg">
+                                                        <ArrowRight className="h-5 w-5 text-purple-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-purple-900">Organizational Transfers</CardTitle>
+                                                        <CardDescription>{comparisonResult.transfers.length} movements across locations/companies.</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" className="bg-purple-600 hover:bg-purple-700 font-bold whitespace-nowrap" onClick={() => handleApply('transfers', comparisonResult.transfers)} disabled={isApplying}>
+                                                    Apply Transfers
+                                                </Button>
+                                            </div>
                                         </CardHeader>
-                                        <CardContent>
-                                            <p className="mb-4 text-sm text-muted-foreground">
-                                                Employees transferred from other organizations to {org.name}.
-                                            </p>
-                                            <div className="max-h-80 overflow-auto border rounded-md mb-4 bg-background">
-                                                <table className="w-full text-xs text-left">
-                                                    <thead className="bg-muted sticky top-0 z-10 shadow-sm">
-                                                        <tr>
-                                                            <th className="p-3 font-bold border-b">Sr. No</th>
-                                                            <th className="p-3 font-bold border-b">Unique ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee ID</th>
-                                                            <th className="p-3 font-bold border-b">Employee Name</th>
-                                                            <th className="p-3 font-bold border-b">Organization</th>
-                                                            <th className="p-3 font-bold border-b">DOJ</th>
-                                                            <th className="p-3 font-bold border-b">Branch</th>
-                                                            <th className="p-3 font-bold border-b">Designation</th>
-                                                            <th className="p-3 font-bold border-b">Status</th>
-                                                            <th className="p-3 font-bold border-b">Mobile Number</th>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Path</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">New ID</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.transfers.map((t: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3">
+                                                                <div className="font-bold text-slate-900">{t.name}</div>
+                                                                <div className="text-[10px] font-mono text-muted-foreground">{t.uniqueId}</div>
+                                                            </td>
+                                                            <td className="p-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-muted-foreground text-[10px] uppercase">{t.fromOrg}</span>
+                                                                    <MoveRight className="h-3 w-3 text-slate-400" />
+                                                                    <span className="font-bold text-slate-900 text-[10px] uppercase">{t.toOrg}</span>
+                                                                </div>
+                                                                <Badge variant="outline" className="text-[9px] mt-1 p-0 px-1 border-purple-200">{t.transferType.replace(/_/g, ' ')}</Badge>
+                                                            </td>
+                                                            <td className="p-3 font-mono font-bold text-primary">{t.newEmployeeId || '-'}</td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {comparisonResult.transfers.map((emp: any, i: number) => {
-                                                            const extra = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-                                                            return (
-                                                                <tr key={i} className="border-t hover:bg-muted/30 transition-colors">
-                                                                    <td className="p-3 text-muted-foreground">{i + 1}</td>
-                                                                    <td className="p-3 font-mono">{emp.uniqueId}</td>
-                                                                    <td className="p-3">{emp.employeeId || '-'}</td>
-                                                                    <td className="p-3 font-semibold text-primary">{emp.name}</td>
-                                                                    <td className="p-3">
-                                                                        <span className="text-muted-foreground">{emp.oldOrg}</span>
-                                                                        <ArrowRight className="inline mx-2 h-3 w-3" />
-                                                                        <span className="font-bold">{emp.newOrg}</span>
-                                                                    </td>
-                                                                    <td className="p-3">{formatDate(emp.dateOfJoining)}</td>
-                                                                    <td className="p-3">{emp.branch}</td>
-                                                                    <td className="p-3">{emp.designation}</td>
-                                                                    <td className="p-3 text-xs font-bold uppercase">{emp.status}</td>
-                                                                    <td className="p-3">
-                                                                        {extra['Mobile Number'] || '-'}
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            <div className="flex gap-4">
-                                                <Button onClick={() => handleApply('transfer', comparisonResult.transfers)} disabled={isApplying}>
-                                                    Yes, Confirm Transfer
-                                                </Button>
-                                                <Button variant="outline" onClick={() => setComparisonResult({ ...comparisonResult, transfers: [] })}>
-                                                    No, Ignore
-                                                </Button>
-                                            </div>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </CardContent>
                                     </Card>
                                 )}
+
+                                {/* Employee ID Changes */}
+                                {comparisonResult.employeeIdChanges && comparisonResult.employeeIdChanges.length > 0 && (
+                                    <Card className="border-l-4 border-l-orange-500 shadow-sm overflow-hidden">
+                                        <CardHeader className="bg-orange-50/50 pb-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-orange-100 rounded-lg">
+                                                        <UserCheck className="h-5 w-5 text-orange-600" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-lg text-orange-900">Employee ID Updates</CardTitle>
+                                                        <CardDescription>{comparisonResult.employeeIdChanges.length} Registration/Employee ID discrepancies.</CardDescription>
+                                                    </div>
+                                                </div>
+                                                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 font-bold whitespace-nowrap" onClick={() => handleApply('employeeIdChanges', comparisonResult.employeeIdChanges)} disabled={isApplying}>
+                                                    Sync All IDs
+                                                </Button>
+                                            </div>
+                                        </CardHeader>
+                                        <CardContent className="p-0 overflow-x-auto">
+                                            <table className="w-full text-xs text-left">
+                                                <thead className="bg-slate-50 border-y">
+                                                    <tr>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">Employee</th>
+                                                        <th className="p-3 font-bold uppercase tracking-wider text-slate-500">ID Delta</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y">
+                                                    {comparisonResult.employeeIdChanges.map((c: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                            <td className="p-3 font-bold text-slate-900">{c.name}</td>
+                                                            <td className="p-3">
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-muted-foreground line-through font-mono uppercase text-[10px]">{c.oldEmployeeId}</span>
+                                                                    <ArrowRight className="h-3 w-3 text-slate-400" />
+                                                                    <span className="font-bold font-mono text-primary uppercase">{c.newEmployeeId}</span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
                             </div>
                         )}
                     </TabsContent>

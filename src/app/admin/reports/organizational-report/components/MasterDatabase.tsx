@@ -4,6 +4,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import OrgSettings from './OrgSettings';
+import EmployeeHistoryModal from './EmployeeHistoryModal';
 import {
     uploadMasterDatabase,
     resetSystem,
@@ -25,7 +27,8 @@ import {
     ChevronRight,
     Filter,
     MoreHorizontal,
-    Table as TableIcon
+    Table as TableIcon,
+    History
 } from "lucide-react";
 import {
     Sheet,
@@ -73,6 +76,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
     const [editingEmployee, setEditingEmployee] = useState<any>(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [columnOrder, setColumnOrder] = useState<string[]>([]);
+    const [historyModalEmployee, setHistoryModalEmployee] = useState<any>(null);
 
     const fetchData = useCallback(async (p: number, s: string) => {
         setIsLoading(true);
@@ -571,6 +575,9 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                             <DropdownMenuItem onClick={() => setEditingEmployee(emp)}>
                                                                 <Edit className="mr-2 h-4 w-4" /> Edit Record
                                                             </DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => setHistoryModalEmployee(emp)}>
+                                                                <History className="mr-2 h-4 w-4" /> View Movement History
+                                                            </DropdownMenuItem>
                                                             <DropdownMenuSeparator />
                                                             <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(emp.id)}>
                                                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -735,6 +742,13 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                     )}
                 </SheetContent>
             </Sheet >
+
+            <EmployeeHistoryModal
+                open={!!historyModalEmployee}
+                onOpenChange={(open) => !open && setHistoryModalEmployee(null)}
+                uniqueId={historyModalEmployee?.uniqueId || ''}
+                employeeName={historyModalEmployee?.name || ''}
+            />
         </Card >
     );
 }

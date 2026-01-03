@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import MasterDatabase from './components/MasterDatabase';
 import OrgComparison from './components/OrgComparison';
 import OrgSettings from './components/OrgSettings';
+import IntimationsPanel from './components/IntimationsPanel';
 import { getMasterEmployees, getOrganizations } from './actions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Settings, Filter, LayoutDashboard } from "lucide-react";
@@ -44,6 +45,8 @@ export default async function OrganizationalStatusPage() {
                         <span className="text-sm font-bold">{metadata?.total || 0}</span>
                         <span className="text-[10px] text-muted-foreground font-medium">Employees</span>
                     </div>
+
+                    <IntimationsPanel />
 
                     <Sheet>
                         <SheetTrigger asChild>
