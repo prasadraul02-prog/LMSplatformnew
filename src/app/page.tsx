@@ -29,7 +29,7 @@ export default function Home() {
             <main className="flex-1">
                 {/* Hero Section */}
                 <section className="py-20 md:py-32 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/50 via-transparent to-indigo-500/50 -z-10" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-violet-600/80 via-transparent to-indigo-600/80 -z-10" />
                     <div className="container flex flex-col items-center text-center gap-8">
                         <h1 className="text-4xl md:text-6xl font-bold tracking-tight max-w-3xl">
                             Elevate Your Team's <br />
