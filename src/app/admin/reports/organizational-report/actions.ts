@@ -317,10 +317,11 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
+            const colDept = mapColumn(['department', 'dept', 'function', 'team', 'unit', 'vertical', 'division']);
 
             if (!colUniqueId || !colName) return [];
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile].filter(Boolean) as string[]);
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept].filter(Boolean) as string[]);
 
             return json.map((row: any) => {
                 const additionalData: Record<string, any> = {};
@@ -343,6 +344,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                     uniqueId: String(row[colUniqueId]).trim(),
                     name: String(row[colName] || 'Unknown'),
                     employeeId: colEmpId ? String(row[colEmpId] || '') : null,
+                    department: colDept ? String(row[colDept] || '') : 'Unknown',
                     branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
                     designation: colDesignation ? String(row[colDesignation] || '') : 'Unknown',
                     dateOfJoining: doj ? doj.toISOString() : null, // Stringify for transfer
@@ -464,6 +466,7 @@ export async function applyChanges(changes: {
                             organizationName: changes.orgName,
                             employmentStatus: emp.status,
                             employeeId: emp.employeeId,
+                            department: emp.department, // Added in v6.0
                             branch: emp.branch || changes.orgName,
                             designation: emp.designation || 'Unknown',
                             dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
@@ -480,7 +483,8 @@ export async function applyChanges(changes: {
                         where: { uniqueId: emp.uniqueId },
                         data: {
                             employmentStatus: emp.newStatus,
-                            employeeId: emp.employeeId // Update ID during status transition
+                            employeeId: emp.employeeId,
+                            department: emp.department // Update department during status transition
                         }
                     });
                 }
@@ -494,7 +498,8 @@ export async function applyChanges(changes: {
                         data: {
                             organizationName: changes.orgName,
                             employmentStatus: emp.status,
-                            employeeId: emp.employeeId // Update ID during transfer
+                            employeeId: emp.employeeId,
+                            department: emp.department // Update department during transfer
                         }
                     });
                 }

@@ -384,6 +384,7 @@ model MasterEmployee {
   employmentStatus  String    // Permanent / On Trial / Contract
   employeeId        String?   // Regular Employee ID
   name              String
+  department        String?   // Added in v6.0
   branch            String
   designation       String
   dateOfJoining     DateTime?

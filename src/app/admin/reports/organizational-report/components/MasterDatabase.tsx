@@ -174,7 +174,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
 
     const handleExport = () => {
         // Prepare headers
-        const coreHeaders = ["Unique ID", "Name", "Organization", "Status", "Branch", "Designation", "DOJ"];
+        const coreHeaders = ["Unique ID", "Name", "Department", "Organization", "Status", "Branch", "Designation", "DOJ"];
 
         // Find all dynamic headers from current visible data
         const dynamicHeaders = new Set<string>();
@@ -196,6 +196,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                 const coreValues = [
                     emp.uniqueId,
                     `"${emp.name}"`,
+                    `"${emp.department || 'Unknown'}"`,
                     `"${emp.organizationName}"`,
                     emp.employmentStatus,
                     `"${emp.branch}"`,
@@ -347,7 +348,7 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                                 <td className="p-4">
                                                     <div className="font-semibold text-primary">{emp.name}</div>
                                                 </td>
-                                                <td className="p-4 text-xs">{emp.organizationName}</td>
+                                                <td className="p-4 text-xs font-medium text-slate-700">{emp.department || 'Unknown'}</td>
                                                 <td className="p-4 text-xs text-muted-foreground">{formatDate(emp.dateOfJoining)}</td>
                                                 <td className="p-4 text-xs">{emp.branch}</td>
                                                 <td className="p-4 text-xs">{emp.designation}</td>
