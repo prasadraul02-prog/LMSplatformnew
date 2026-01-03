@@ -227,7 +227,18 @@ export async function uploadMasterDatabase(formData: FormData) {
             validRows.push({
                 uniqueId: uniqueId,
                 organizationName: colOrgName ? String(row[colOrgName] || '') : 'Unknown',
-                employmentStatus: colStatus ? String(row[colStatus] || '') : 'Unknown',
+                employmentStatus: (() => {
+                    const status = colStatus ? String(row[colStatus] || '').trim() : '';
+                    if (status) return status;
+
+                    // Auto-assign based on Employee ID prefix if status is missing
+                    const empId = colEmpId ? String(row[colEmpId] || '').trim().toUpperCase() : '';
+                    if (empId.startsWith('OTMH')) return 'On Trial';
+                    if (empId.startsWith('CMH')) return 'Contract';
+                    if (empId.startsWith('MH')) return 'Staff';
+
+                    return 'Unknown';
+                })(),
                 employeeId: colEmpId ? String(row[colEmpId] || '') : null,
                 name: colName ? String(row[colName] || '') : 'Unknown',
                 branch: colBranch ? String(row[colBranch] || '') : 'Unknown',
@@ -623,205 +634,233 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         return { success: false, error: "Failed to compare sheets: " + (error as Error).message };
     }
 }
+// Helper to chunk array
+const chunk = (arr: any[], size: number) => Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
+    arr.slice(i * size, i * size + size)
+);
+
 export async function applyChanges(changes: {
     newEmployees?: any[],
     statusChanges?: any[],
     resignations?: any[],
     transfers?: any[],
     employeeIdChanges?: any[],
+    departmentMismatches?: any[], // Added support for department actions (dismiss/update if needed)
     orgName: string
 }) {
     try {
-        await prisma.$transaction(async (tx) => {
-            // 1. Add New Employees
-            if (changes.newEmployees) {
-                const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
-                for (const emp of changes.newEmployees) {
-                    const normalizedId = normalize(emp.uniqueId);
+        const BATCH_SIZE = 10; // Process 10 items at a time to avoid timeout
 
-                    // Check if already exists just to be safe (transactional)
-                    const existing = await (tx as any).masterEmployee.findUnique({
-                        where: { uniqueId: normalizedId }
-                    });
-
-                    if (!existing) {
-                        const newEmp = await (tx as any).masterEmployee.create({
-                            data: {
-                                uniqueId: normalizedId,
-                                name: emp.name,
-                                organizationName: changes.orgName,
-                                employmentStatus: emp.status,
-                                employeeId: emp.employeeId,
-                                department: emp.department,
-                                branch: emp.branch || changes.orgName,
-                                designation: emp.designation || 'Unknown',
-                                dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
-                                additionalData: emp.additionalData
-                            }
+        // 1. Add New Employees
+        if (changes.newEmployees && changes.newEmployees.length > 0) {
+            const batches = chunk(changes.newEmployees, BATCH_SIZE);
+            for (const batch of batches) {
+                await prisma.$transaction(async (tx) => {
+                    const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
+                    for (const emp of batch) {
+                        const normalizedId = normalize(emp.uniqueId);
+                        const existing = await (tx as any).masterEmployee.findUnique({
+                            where: { uniqueId: normalizedId }
                         });
 
-                        await logEmployeeHistory(normalizedId, 'NEW_EMPLOYEE', null, newEmp);
+                        if (!existing) {
+                            const newEmp = await (tx as any).masterEmployee.create({
+                                data: {
+                                    uniqueId: normalizedId,
+                                    name: emp.name,
+                                    organizationName: changes.orgName,
+                                    employmentStatus: emp.status,
+                                    employeeId: emp.employeeId,
+                                    department: emp.department,
+                                    branch: emp.branch || changes.orgName,
+                                    designation: emp.designation || 'Unknown',
+                                    dateOfJoining: emp.dateOfJoining ? new Date(emp.dateOfJoining) : null,
+                                    additionalData: emp.additionalData
+                                }
+                            });
+                            await logEmployeeHistory(normalizedId, 'NEW_EMPLOYEE', null, newEmp);
+                        }
                     }
-                }
+                }, { timeout: 20000 });
             }
+        }
 
-            // 2. Update Status Changes (Staff ↔ Trial ↔ Contract)
-            if (changes.statusChanges) {
-                for (const change of changes.statusChanges) {
-                    const masterEmp = await (tx as any).masterEmployee.findUnique({
-                        where: { uniqueId: change.uniqueId }
-                    });
-
-                    if (masterEmp) {
-                        await (tx as any).masterEmployee.update({
-                            where: { uniqueId: change.uniqueId },
-                            data: {
-                                employmentStatus: change.newStatus,
-                                employeeId: change.newEmployeeId || masterEmp.employeeId,
-                                previousEmployeeId: change.oldEmployeeId || masterEmp.employeeId,
-                                lastStatusChange: new Date()
-                            }
+        // 2. Update Status Changes (Staff ↔ Trial ↔ Contract)
+        if (changes.statusChanges && changes.statusChanges.length > 0) {
+            const batches = chunk(changes.statusChanges, BATCH_SIZE);
+            for (const batch of batches) {
+                await prisma.$transaction(async (tx) => {
+                    for (const change of batch) {
+                        const masterEmp = await (tx as any).masterEmployee.findUnique({
+                            where: { uniqueId: change.uniqueId }
                         });
 
-                        await (tx as any).statusChange.create({
-                            data: {
-                                uniqueId: change.uniqueId,
-                                employeeName: change.name,
-                                organizationName: change.organization,
-                                oldStatus: change.oldStatus,
-                                newStatus: change.newStatus,
-                                oldEmployeeId: change.oldEmployeeId,
-                                newEmployeeId: change.newEmployeeId,
-                                applied: true,
-                                appliedAt: new Date()
-                            }
-                        });
+                        if (masterEmp) {
+                            await (tx as any).masterEmployee.update({
+                                where: { uniqueId: change.uniqueId },
+                                data: {
+                                    employmentStatus: change.newStatus,
+                                    employeeId: change.newEmployeeId || masterEmp.employeeId,
+                                    previousEmployeeId: change.oldEmployeeId || masterEmp.employeeId,
+                                    lastStatusChange: new Date()
+                                }
+                            });
 
-                        await createIntimation('STATUS_CHANGE', change);
-                        await logEmployeeHistory(change.uniqueId, 'STATUS_CHANGE',
-                            { status: change.oldStatus, employeeId: change.oldEmployeeId },
-                            { status: change.newStatus, employeeId: change.newEmployeeId }
-                        );
+                            await (tx as any).statusChange.create({
+                                data: {
+                                    uniqueId: change.uniqueId,
+                                    employeeName: change.name,
+                                    organizationName: change.organization,
+                                    oldStatus: change.oldStatus,
+                                    newStatus: change.newStatus,
+                                    oldEmployeeId: change.oldEmployeeId,
+                                    newEmployeeId: change.newEmployeeId,
+                                    applied: true,
+                                    appliedAt: new Date()
+                                }
+                            });
+
+                            await createIntimation('STATUS_CHANGE', change);
+                            await logEmployeeHistory(change.uniqueId, 'STATUS_CHANGE',
+                                { status: change.oldStatus, employeeId: change.oldEmployeeId },
+                                { status: change.newStatus, employeeId: change.newEmployeeId }
+                            );
+                        }
                     }
-                }
+                }, { timeout: 20000 });
             }
+        }
 
-            // 3. Process Resignations
-            if (changes.resignations) {
-                for (const resignation of changes.resignations) {
-                    const masterEmp = await (tx as any).masterEmployee.findUnique({
-                        where: { uniqueId: resignation.uniqueId }
-                    });
-
-                    if (masterEmp) {
-                        await (tx as any).masterEmployee.update({
-                            where: { uniqueId: resignation.uniqueId },
-                            data: {
-                                employmentStatus: resignation.resignationType === 'ON_TRIAL_DISCONTINUE'
-                                    ? 'Resigned - Trial Discontinue'
-                                    : 'Resigned'
-                            }
+        // 3. Process Resignations
+        if (changes.resignations && changes.resignations.length > 0) {
+            const batches = chunk(changes.resignations, BATCH_SIZE);
+            for (const batch of batches) {
+                await prisma.$transaction(async (tx) => {
+                    for (const resignation of batch) {
+                        const masterEmp = await (tx as any).masterEmployee.findUnique({
+                            where: { uniqueId: resignation.uniqueId }
                         });
 
-                        await (tx as any).resignation.create({
-                            data: {
-                                uniqueId: resignation.uniqueId,
-                                employeeName: resignation.name,
-                                organizationName: resignation.organization,
-                                resignationType: resignation.resignationType,
-                                remarks: resignation.remarks,
-                                resignationDate: resignation.resignationDate ? new Date(resignation.resignationDate) : new Date(),
-                                applied: true,
-                                appliedAt: new Date()
-                            }
-                        });
+                        if (masterEmp) {
+                            await (tx as any).masterEmployee.update({
+                                where: { uniqueId: resignation.uniqueId },
+                                data: {
+                                    employmentStatus: resignation.resignationType === 'ON_TRIAL_DISCONTINUE'
+                                        ? 'Resigned - Trial Discontinue'
+                                        : 'Resigned'
+                                }
+                            });
 
-                        await createIntimation('RESIGNATION', resignation);
-                        await logEmployeeHistory(resignation.uniqueId, 'RESIGNATION',
-                            { status: masterEmp.employmentStatus },
-                            { status: 'Resigned', type: resignation.resignationType },
-                            resignation.remarks
-                        );
+                            await (tx as any).resignation.create({
+                                data: {
+                                    uniqueId: resignation.uniqueId,
+                                    employeeName: resignation.name,
+                                    organizationName: resignation.organization,
+                                    resignationType: resignation.resignationType,
+                                    remarks: resignation.remarks,
+                                    resignationDate: resignation.resignationDate ? new Date(resignation.resignationDate) : new Date(),
+                                    applied: true,
+                                    appliedAt: new Date()
+                                }
+                            });
+
+                            await createIntimation('RESIGNATION', resignation);
+                            await logEmployeeHistory(resignation.uniqueId, 'RESIGNATION',
+                                { status: masterEmp.employmentStatus },
+                                { status: 'Resigned', type: resignation.resignationType },
+                                resignation.remarks
+                            );
+                        }
                     }
-                }
+                }, { timeout: 20000 });
             }
+        }
 
-            // 4. Inter-Org and Shared Transfers
-            if (changes.transfers) {
-                for (const transfer of changes.transfers) {
-                    const existing = await (tx as any).masterEmployee.findUnique({
-                        where: { uniqueId: transfer.uniqueId }
-                    });
-
-                    if (existing) {
-                        const history = existing.transferHistory ? JSON.parse(existing.transferHistory) : [];
-                        history.push({
-                            from: transfer.fromOrg,
-                            to: transfer.toOrg,
-                            date: new Date().toISOString(),
-                            type: transfer.transferType
+        // 4. Inter-Org and Shared Transfers
+        if (changes.transfers && changes.transfers.length > 0) {
+            const batches = chunk(changes.transfers, BATCH_SIZE);
+            for (const batch of batches) {
+                await prisma.$transaction(async (tx) => {
+                    for (const transfer of batch) {
+                        const existing = await (tx as any).masterEmployee.findUnique({
+                            where: { uniqueId: transfer.uniqueId }
                         });
 
-                        await (tx as any).masterEmployee.update({
-                            where: { uniqueId: transfer.uniqueId },
-                            data: {
-                                organizationName: transfer.toOrg,
-                                employeeId: transfer.newEmployeeId || existing.employeeId,
-                                previousEmployeeId: transfer.oldEmployeeId || existing.employeeId,
-                                transferHistory: JSON.stringify(history)
-                            }
-                        });
+                        if (existing) {
+                            const history = existing.transferHistory ? JSON.parse(existing.transferHistory) : [];
+                            history.push({
+                                from: transfer.fromOrg,
+                                to: transfer.toOrg,
+                                date: new Date().toISOString(),
+                                type: transfer.transferType
+                            });
 
-                        await (tx as any).organizationalTransfer.create({
-                            data: {
-                                uniqueId: transfer.uniqueId,
-                                employeeName: transfer.name,
-                                fromOrganization: transfer.fromOrg,
-                                toOrganization: transfer.toOrg,
-                                oldEmployeeId: transfer.oldEmployeeId,
-                                newEmployeeId: transfer.newEmployeeId,
-                                transferType: transfer.transferType,
-                                remarks: transfer.remarks,
-                                applied: true,
-                                appliedAt: new Date()
-                            }
-                        });
+                            await (tx as any).masterEmployee.update({
+                                where: { uniqueId: transfer.uniqueId },
+                                data: {
+                                    organizationName: transfer.toOrg,
+                                    employeeId: transfer.newEmployeeId || existing.employeeId,
+                                    previousEmployeeId: transfer.oldEmployeeId || existing.employeeId,
+                                    transferHistory: JSON.stringify(history)
+                                }
+                            });
 
-                        await createIntimation('TRANSFER', transfer);
-                        await logEmployeeHistory(transfer.uniqueId, 'TRANSFER',
-                            { organization: transfer.fromOrg, employeeId: transfer.oldEmployeeId },
-                            { organization: transfer.toOrg, employeeId: transfer.newEmployeeId },
-                            transfer.remarks
-                        );
+                            await (tx as any).organizationalTransfer.create({
+                                data: {
+                                    uniqueId: transfer.uniqueId,
+                                    employeeName: transfer.name,
+                                    fromOrganization: transfer.fromOrg,
+                                    toOrganization: transfer.toOrg,
+                                    oldEmployeeId: transfer.oldEmployeeId,
+                                    newEmployeeId: transfer.newEmployeeId,
+                                    transferType: transfer.transferType,
+                                    remarks: transfer.remarks,
+                                    applied: true,
+                                    appliedAt: new Date()
+                                }
+                            });
+
+                            await createIntimation('TRANSFER', transfer);
+                            await logEmployeeHistory(transfer.uniqueId, 'TRANSFER',
+                                { organization: transfer.fromOrg, employeeId: transfer.oldEmployeeId },
+                                { organization: transfer.toOrg, employeeId: transfer.newEmployeeId },
+                                transfer.remarks
+                            );
+                        }
                     }
-                }
+                }, { timeout: 20000 });
             }
+        }
 
-            // 5. Employee ID Changes
-            if (changes.employeeIdChanges) {
-                for (const change of changes.employeeIdChanges) {
-                    const masterEmp = await (tx as any).masterEmployee.findUnique({
-                        where: { uniqueId: change.uniqueId }
-                    });
-
-                    if (masterEmp) {
-                        await (tx as any).masterEmployee.update({
-                            where: { uniqueId: change.uniqueId },
-                            data: {
-                                employeeId: change.newEmployeeId,
-                                previousEmployeeId: change.oldEmployeeId
-                            }
+        // 5. Employee ID Changes
+        if (changes.employeeIdChanges && changes.employeeIdChanges.length > 0) {
+            const batches = chunk(changes.employeeIdChanges, BATCH_SIZE);
+            for (const batch of batches) {
+                await prisma.$transaction(async (tx) => {
+                    for (const change of batch) {
+                        const masterEmp = await (tx as any).masterEmployee.findUnique({
+                            where: { uniqueId: change.uniqueId }
                         });
 
-                        await createIntimation('EMPLOYEE_ID_CHANGE', change);
-                        await logEmployeeHistory(change.uniqueId, 'EMPLOYEE_ID_CHANGE',
-                            { employeeId: change.oldEmployeeId },
-                            { employeeId: change.newEmployeeId }
-                        );
+                        if (masterEmp) {
+                            await (tx as any).masterEmployee.update({
+                                where: { uniqueId: change.uniqueId },
+                                data: {
+                                    employeeId: change.newEmployeeId,
+                                    previousEmployeeId: change.oldEmployeeId
+                                }
+                            });
+
+                            await createIntimation('EMPLOYEE_ID_CHANGE', change);
+                            await logEmployeeHistory(change.uniqueId, 'EMPLOYEE_ID_CHANGE',
+                                { employeeId: change.oldEmployeeId },
+                                { employeeId: change.newEmployeeId }
+                            );
+                        }
                     }
-                }
+                }, { timeout: 20000 });
             }
-        });
+        }
 
         revalidatePath('/admin/reports/organizational-report');
         return { success: true, message: "Changes applied successfully with intimations and history logged." };
