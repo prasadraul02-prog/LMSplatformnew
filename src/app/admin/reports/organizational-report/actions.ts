@@ -427,7 +427,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 const rawResignDate = colResignDate ? row[colResignDate] : null;
                 const resignDate = rawResignDate ? parseDate(rawResignDate) : null;
 
-                // ID Normalization: remove all non-alphanumeric and spaces
+                // Standardized ID Normalization: remove all non-alphanumeric (dashes, spaces, etc)
                 const normalizeId = (id: any) => String(id || '').replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
                 const rawUniqueId = row[colUniqueId!];
                 const normalizedUniqueId = normalizeId(rawUniqueId);
@@ -471,7 +471,7 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
         const resignedIds = new Set(allResigned.map(e => e.uniqueId));
         const transferredIds = new Set(transferred.map(e => e.uniqueId));
 
-        // Fetch Master Data and build map with normalized IDs
+        // Fetch Master Data and build map with standardized normalization
         const masterEmployees = await (prisma as any).masterEmployee.findMany();
         const normalize = (id: string) => id.replace(/[^a-zA-Z0-9]/g, '').trim().toUpperCase();
         const masterMap = new Map<string, any>(masterEmployees.map((e: any) => [normalize(e.uniqueId), e]));
