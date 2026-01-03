@@ -111,13 +111,21 @@ export async function uploadMasterDatabase(formData: FormData) {
         }
 
         const mapColumn = (keywords: string[]) => {
-            return keys.find(key => keywords.some(k => key.toLowerCase().includes(k.toLowerCase())));
+            // Clean function to remove dots, spaces, and special chars for better matching
+            const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+            return keys.find(key => {
+                const cleanKey = clean(key);
+                return keywords.some(k => {
+                    const cleanKeyword = clean(k);
+                    return cleanKey.includes(cleanKeyword) || cleanKeyword.includes(cleanKey);
+                });
+            });
         };
 
         const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'id number', 'aadhaar']);
         const colOrgName = mapColumn(['organization', 'org', 'company', 'unit']);
         const colStatus = mapColumn(['status', 'employment', 'type', 'state']);
-        const colEmpId = mapColumn(['employee id', 'emp id', 'reg id', 'staff id']);
+        const colEmpId = mapColumn(['employee id', 'emp id', 'empid', 'reg id', 'staff id']);
         const colName = mapColumn(['name', 'employee name', 'full name', 'worker name']);
         const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant']);
         const colDesignation = mapColumn(['designation', 'role', 'position', 'job title']);
@@ -315,13 +323,13 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
                 const cleanKeywords = keywords.map(clean);
                 return keys.find(key => {
                     const cleanKey = clean(key);
-                    return cleanKeywords.some(ck => cleanKey.includes(ck));
+                    return cleanKeywords.some(ck => cleanKey.includes(ck) || ck.includes(cleanKey));
                 });
             };
 
             const colUniqueId = mapColumn(['unique', 'aadhar', 'uid', 'idnumber', 'aadhaar']);
             const colName = mapColumn(['name', 'employeename', 'fullname', 'workername', 'employee_name']);
-            const colEmpId = mapColumn(['employeeid', 'empid', 'regid', 'staffid', 'employee_id', 'code']);
+            const colEmpId = mapColumn(['employeeid', 'empid', 'regid', 'staffid', 'employee_id', 'code', 'emp id', 'employee id']);
             const colBranch = mapColumn(['branch', 'location', 'site', 'factory', 'plant', 'unit']);
             const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
