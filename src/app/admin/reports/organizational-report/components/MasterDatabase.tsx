@@ -173,10 +173,18 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
     };
 
     const handleExport = () => {
-        // Prepare headers
-        const coreHeaders = ["Unique ID", "Name", "Department", "Organization", "Status", "Branch", "Designation", "DOJ"];
+        // Collect all possible headers from the current data
+        const coreColsMap: Record<string, string> = {
+            'uniqueId': 'Unique ID',
+            'employeeId': 'Employee ID',
+            'name': 'Employee Name',
+            'department': 'Department',
+            'dateOfJoining': 'DOJ',
+            'branch': 'Branch',
+            'designation': 'Designation',
+            'employmentStatus': 'Status'
+        };
 
-        // Find all dynamic headers from current visible data
         const dynamicHeaders = new Set<string>();
         data.forEach(emp => {
             if (emp.additionalData) {
@@ -187,32 +195,33 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
             }
         });
 
-        const allHeaders = [...coreHeaders, ...Array.from(dynamicHeaders)];
+        const allHeaders = [
+            ...Object.values(coreColsMap),
+            ...Array.from(dynamicHeaders)
+        ];
 
-        const csvContent = [
-            allHeaders.map(h => `"${h}"`).join(","),
-            ...data.map(emp => {
-                const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
-                const coreValues = [
-                    emp.uniqueId,
-                    `"${emp.name}"`,
-                    `"${emp.department || 'Unknown'}"`,
-                    `"${emp.organizationName}"`,
-                    emp.employmentStatus,
-                    `"${emp.branch}"`,
-                    `"${emp.designation}"`,
-                    formatDate(emp.dateOfJoining)
-                ];
-                const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
-                return [...coreValues, ...dynamicValues].join(",");
-            })
-        ].join("\n");
+        const rows = data.map(emp => {
+            const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+            const coreValues = [
+                emp.uniqueId,
+                emp.employeeId || '',
+                `"${emp.name}"`,
+                `"${emp.department || 'Unknown'}"`,
+                formatDate(emp.dateOfJoining),
+                `"${emp.branch}"`,
+                `"${emp.designation}"`,
+                emp.employmentStatus
+            ];
+            const dynamicValues = Array.from(dynamicHeaders).map(h => `"${extraData[h] || ''}"`);
+            return [...coreValues, ...dynamicValues].join(',');
+        });
 
+        const csvContent = [allHeaders.join(','), ...rows].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
         const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", `master_hr_database_extract.csv`);
+        link.setAttribute("download", `HR_Master_Export_${new Date().toISOString().split('T')[0]}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -302,22 +311,46 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                             <thead className="sticky top-0 z-20 bg-muted/80 backdrop-blur-md border-b">
                                 <tr>
                                     <th className="p-4 font-bold text-primary w-[50px]">#</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Unique ID</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Employee ID</th>
-                                    <th className="p-4 font-bold text-primary min-w-[150px]">Employee Name</th>
-                                    <th className="p-4 font-bold text-primary min-w-[150px]">Department</th>
-                                    <th className="p-4 font-bold text-primary min-w-[100px]">DOJ</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Branch</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Designation</th>
-                                    <th className="p-4 font-bold text-primary min-w-[100px]">Status</th>
-                                    <th className="p-4 font-bold text-primary min-w-[120px]">Mobile Number</th>
+                                    {(() => {
+                                        // Define core columns that we always want to show if they exist
+                                        const coreColsMap: Record<string, string> = {
+                                            'uniqueId': 'Unique ID',
+                                            'employeeId': 'Employee ID',
+                                            'name': 'Employee Name',
+                                            'department': 'Department',
+                                            'dateOfJoining': 'DOJ',
+                                            'branch': 'Branch',
+                                            'designation': 'Designation',
+                                            'employmentStatus': 'Status'
+                                        };
+
+                                        // Identify all unique extra data keys
+                                        const extraKeys = new Set<string>();
+                                        data.forEach(emp => {
+                                            if (emp.additionalData) {
+                                                try {
+                                                    const extra = JSON.parse(emp.additionalData);
+                                                    Object.keys(extra).forEach(k => extraKeys.add(k));
+                                                } catch (e) { }
+                                            }
+                                        });
+
+                                        const dynamicRows = [
+                                            ...Object.values(coreColsMap),
+                                            ...Array.from(extraKeys)
+                                        ];
+
+                                        return dynamicRows.map(header => (
+                                            <th key={header} className="p-4 font-bold text-primary min-w-[120px] whitespace-nowrap">{header}</th>
+                                        ));
+                                    })()}
                                     <th className="p-4 font-bold text-primary sticky right-0 bg-muted/80 backdrop-blur-md border-l w-[80px] text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y">
                                 {isLoading ? (
                                     <tr>
-                                        <td colSpan={11} className="p-20 text-center">
+                                        <td colSpan={20} className="p-20 text-center">
                                             <div className="flex flex-col items-center gap-4">
                                                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
                                                 <p className="text-lg font-medium animate-pulse">Loading employee data...</p>
@@ -326,45 +359,61 @@ export default function MasterDatabase({ initialData, initialMetadata }: { initi
                                     </tr>
                                 ) : data.length === 0 ? (
                                     <tr>
-                                        <td colSpan={11} className="p-20 text-center text-muted-foreground italic">
+                                        <td colSpan={20} className="p-20 text-center text-muted-foreground italic">
                                             No employee records found matching your search.
                                         </td>
                                     </tr>
                                 ) : (
                                     data.map((emp, index) => {
                                         const isNew = emp.createdAt && (new Date().getTime() - new Date(emp.createdAt).getTime() < 24 * 60 * 60 * 1000);
-                                        const isUpdated = emp.updatedAt && (new Date().getTime() - new Date(emp.updatedAt).getTime() < 24 * 60 * 60 * 1000) && !isNew;
                                         const extraData = emp.additionalData ? JSON.parse(emp.additionalData) : {};
+
+                                        // Same logic for headers to match cells
+                                        const coreCols = ['uniqueId', 'employeeId', 'name', 'department', 'dateOfJoining', 'branch', 'designation', 'employmentStatus'];
+                                        const extraKeys = new Set<string>();
+                                        data.forEach(e => {
+                                            if (e.additionalData) {
+                                                try {
+                                                    const extra = JSON.parse(e.additionalData);
+                                                    Object.keys(extra).forEach(k => extraKeys.add(k));
+                                                } catch (e) { }
+                                            }
+                                        });
+
                                         return (
                                             <tr key={emp.id} className={`group border-b hover:bg-muted/50 transition-colors ${isNew ? 'bg-green-50/50' : ''}`}>
                                                 <td className="p-4 text-xs text-muted-foreground">{(page - 1) * metadata.limit + index + 1}</td>
-                                                <td className="p-4 font-mono text-xs">
-                                                    <div className="flex flex-col gap-1">
-                                                        {emp.uniqueId}
-                                                        {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-xs font-semibold">{emp.employeeId || '-'}</td>
-                                                <td className="p-4">
-                                                    <div className="font-semibold text-primary">{emp.name}</div>
-                                                </td>
-                                                <td className="p-4 text-xs font-medium text-slate-700">{emp.department || 'Unknown'}</td>
-                                                <td className="p-4 text-xs text-muted-foreground">{formatDate(emp.dateOfJoining)}</td>
-                                                <td className="p-4 text-xs">{emp.branch}</td>
-                                                <td className="p-4 text-xs">{emp.designation}</td>
-                                                <td className="p-4">
-                                                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp.employmentStatus.toLowerCase() === 'deactive' || emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
-                                                        'bg-green-100 text-green-700'
-                                                        }`}>
-                                                        {emp.employmentStatus.toLowerCase() === 'deactive' || emp.employmentStatus.toLowerCase().includes('resigned') || emp.employmentStatus.toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-xs font-semibold text-slate-600">
-                                                    {(() => {
-                                                        const m = Object.keys(extraData).find(k => ['mobile', 'phone', 'contact', 'tele'].some(kw => k.toLowerCase().includes(kw)));
-                                                        return m ? extraData[m] : '-';
-                                                    })()}
-                                                </td>
+
+                                                {/* Render Core Fields */}
+                                                {coreCols.map(col => (
+                                                    <td key={col} className="p-4">
+                                                        {col === 'uniqueId' ? (
+                                                            <div className="flex flex-col gap-1">
+                                                                <span className="font-mono text-xs">{emp[col]}</span>
+                                                                {isNew && <span className="text-[8px] bg-green-500 text-white px-1 rounded w-fit font-bold text-center">NEW JOINED</span>}
+                                                            </div>
+                                                        ) : col === 'name' ? (
+                                                            <div className="font-semibold text-primary">{emp[col]}</div>
+                                                        ) : col === 'dateOfJoining' ? (
+                                                            <span className="text-xs text-muted-foreground">{formatDate(emp[col])}</span>
+                                                        ) : col === 'employmentStatus' ? (
+                                                            <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'bg-slate-100 text-slate-700' :
+                                                                'bg-green-100 text-green-700'
+                                                                }`}>
+                                                                {emp[col].toLowerCase() === 'deactive' || emp[col].toLowerCase().includes('resigned') || emp[col].toLowerCase().includes('terminated') ? 'DEACTIVE' : 'ACTIVE'}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-xs font-medium text-slate-700">{emp[col] || '-'}</span>
+                                                        )}
+                                                    </td>
+                                                ))}
+
+                                                {/* Render Extra Fields */}
+                                                {Array.from(extraKeys).map(key => (
+                                                    <td key={key} className="p-4 text-xs text-slate-600">
+                                                        {extraData[key] || '-'}
+                                                    </td>
+                                                ))}
 
                                                 <td className="p-4 sticky right-0 bg-card group-hover:bg-muted/50 border-l text-center">
                                                     <DropdownMenu>

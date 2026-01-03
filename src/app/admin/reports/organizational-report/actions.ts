@@ -317,11 +317,12 @@ export async function compareOrgSheet(formData: FormData, orgName: string) {
             const colDesignation = mapColumn(['designation', 'role', 'position', 'jobtitle', 'desig']);
             const colDoj = mapColumn(['joining', 'doj', 'dateofjoining', 'joiningdate', 'date_of_joining']);
             const colMobile = mapColumn(['mobile', 'phone', 'contact', 'tele', 'cell', 'whatsapp']);
-            const colDept = mapColumn(['department', 'dept', 'function', 'team', 'unit', 'vertical', 'division']);
+            const colDept = mapColumn(['department', 'dept', 'function', 'team', 'unit', 'vertical', 'division', 'departnment', 'departmnt']);
+            const colSrNo = mapColumn(['srno', 'serial', 'number', 'slno', 'index']);
 
             if (!colUniqueId || !colName) return [];
 
-            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept].filter(Boolean) as string[]);
+            const coreColsSet = new Set([colUniqueId, colName, colEmpId, colBranch, colDesignation, colDoj, colMobile, colDept, colSrNo].filter(Boolean) as string[]);
 
             return json.map((row: any) => {
                 const additionalData: Record<string, any> = {};
