@@ -151,9 +151,7 @@ export default function LoginPage() {
                         <LayoutDashboard className="h-7 w-7 text-white" />
                     </div>
                     <h1 className="text-5xl font-bold mb-6">Welcome Back</h1>
-                    <p className="text-xl text-slate-100 leading-relaxed mb-6">
-                        Sign in to access your learning portal and continue your educational journey.
-                    </p>
+
                     <div className="space-y-4 text-slate-200">
                         <div className="flex items-center gap-3">
                             <div className="h-2 w-2 rounded-full bg-white/80" />
@@ -163,10 +161,7 @@ export default function LoginPage() {
                             <div className="h-2 w-2 rounded-full bg-white/80" />
                             <span>Complete courses & quizzes</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <div className="h-2 w-2 rounded-full bg-white/80" />
-                            <span>Earn certifications</span>
-                        </div>
+
                     </div>
                 </div>
             </div>

@@ -160,9 +160,9 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight text-slate-800">Organizational Movement Analyser</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-800">Analyser</h2>
                     <p className="text-sm text-muted-foreground font-medium uppercase tracking-wider mt-1">
-                        Bi-Directional Synchronization & Audit v2.0
+                        Start
                     </p>
                 </div>
                 {comparisonResult && totalChanges > 0 && (
@@ -198,7 +198,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                         <Upload className="h-8 w-8 text-primary" />
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="text-xl font-bold">Synchronize {org.name}</h3>
+                                        <h3 className="text-xl font-bold">{org.name}</h3>
                                         <p className="text-sm text-muted-foreground leading-relaxed">
                                             Upload your latest Excel file with Staff, On Trial, or Contract sheets.
                                             The system will automatically detect movement, resignations and ID changes.
@@ -214,7 +214,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                         />
                                         <Button size="lg" className="rounded-xl px-10 h-12 font-bold shadow-lg shadow-primary/20" disabled={isAnalyzing}>
                                             {isAnalyzing ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Search className="mr-2 h-5 w-5" />}
-                                            {isAnalyzing ? 'Analysing Sheets...' : 'Start Comparative Analysis'}
+                                            {isAnalyzing ? 'Analysing Sheets...' : 'Start Analysis'}
                                         </Button>
                                     </div>
                                     <div className="flex gap-4 pt-4">
@@ -242,7 +242,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <UserPlus className="h-5 w-5 text-green-600" />
                                                     </div>
                                                     <div>
-                                                        <CardTitle className="text-lg text-green-900">New Onboarding Required</CardTitle>
+                                                        <CardTitle className="text-lg text-green-900">New Joinies</CardTitle>
                                                         <CardDescription>Detected {comparisonResult.newEmployees.length} employees not in Master HR Database.</CardDescription>
                                                     </div>
                                                 </div>
@@ -250,7 +250,7 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                     Dismiss All
                                                 </Button>
                                                 <Button size="sm" className="bg-green-600 hover:bg-green-700 font-bold whitespace-nowrap" onClick={() => handleApply('newEmployees', comparisonResult.newEmployees)} disabled={isApplying}>
-                                                    Approve & Onboard All
+                                                    Approve All
                                                 </Button>
                                             </div>
                                         </CardHeader>
@@ -373,8 +373,8 @@ export default function OrgComparison({ organizations }: OrgComparisonProps) {
                                                         <UserMinus className="h-5 w-5 text-red-600" />
                                                     </div>
                                                     <div>
-                                                        <CardTitle className="text-lg text-red-900">Resignations & Exits</CardTitle>
-                                                        <CardDescription>Detected {comparisonResult.resignations.length} exits or discontinued trials.</CardDescription>
+                                                        <CardTitle className="text-lg text-red-900">Resigned Employees</CardTitle>
+                                                        <CardDescription>Detected {comparisonResult.resignations.length} discontinued trials.</CardDescription>
                                                     </div>
                                                 </div>
                                                 <Button size="sm" variant="outline" className="text-red-600 hover:bg-red-50 hover:text-red-700 font-bold whitespace-nowrap" onClick={() => handleDismiss('resignations', comparisonResult.resignations.map((e: any) => e.uniqueId))}>
