@@ -32,6 +32,11 @@ export async function POST(request: NextRequest) {
             where.location = { in: locations };
         }
 
+        // Filter by specific employee IDs if provided
+        if (body.employeeIds && Array.isArray(body.employeeIds) && body.employeeIds.length > 0) {
+            where.employeeId = { in: body.employeeIds };
+        }
+
         const untrainedEmployees = await prisma.employee.findMany({ where });
 
         // Group by location

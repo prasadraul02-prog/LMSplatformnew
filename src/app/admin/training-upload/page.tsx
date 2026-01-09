@@ -17,11 +17,59 @@ interface UploadResult {
     error?: string;
 }
 
+interface Employee {
+    id: string;
+    employeeId: string;
+    name: string;
+    location: string;
+    trainingLevel: string;
+    department?: string;
+    designation?: string;
+}
+
 export default function ExcelUploadPage() {
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
     const [result, setResult] = useState<UploadResult | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [untrainedEmployees, setUntrainedEmployees] = useState<Employee[]>([]);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [fetchingEmployees, setFetchingEmployees] = useState(false);
+
+    const fetchUntrainedEmployees = async (batchId: string) => {
+        setFetchingEmployees(true);
+        try {
+            const res = await fetch(`/api/training/employees?batchId=${batchId}`);
+            const data = await res.json();
+            if (data.employees) {
+                setUntrainedEmployees(data.employees);
+                // Default select all
+                setSelectedIds(new Set(data.employees.map((e: Employee) => e.employeeId)));
+            }
+        } catch (error) {
+            toast.error('Failed to fetch employee details');
+        } finally {
+            setFetchingEmployees(false);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === untrainedEmployees.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(untrainedEmployees.map(e => e.employeeId)));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        const newSelected = new Set(selectedIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedIds(newSelected);
+    };
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
@@ -81,6 +129,10 @@ export default function ExcelUploadPage() {
                 setFile(null);
                 const fileInput = document.getElementById('file-input') as HTMLInputElement;
                 if (fileInput) fileInput.value = '';
+
+                if (data.batchId) {
+                    fetchUntrainedEmployees(data.batchId);
+                }
             } else {
                 toast.error(data.error || 'Upload failed', { id: 'upload' });
             }
@@ -107,6 +159,7 @@ export default function ExcelUploadPage() {
                 body: JSON.stringify({
                     batchId: result.batchId,
                     locations,
+                    employeeIds: Array.from(selectedIds), // Send selected IDs
                 }),
             });
 
@@ -160,10 +213,10 @@ export default function ExcelUploadPage() {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         className={`relative border-2 border-dashed rounded-2xl p-10 mb-6 text-center transition-all duration-300 ${isDragging
-                                ? 'border-primary bg-primary/10 scale-105 shadow-lg'
-                                : file
-                                    ? 'border-success bg-success/10'
-                                    : 'border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-primary/50 hover:shadow-md'
+                            ? 'border-primary bg-primary/10 scale-105 shadow-lg'
+                            : file
+                                ? 'border-success bg-success/10'
+                                : 'border-gray-300 bg-gradient-to-br from-gray-50 to-white hover:border-primary/50 hover:shadow-md'
                             }`}
                     >
                         <AnimatePresence mode="wait">
@@ -265,10 +318,10 @@ export default function ExcelUploadPage() {
 
                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                                                     {[
-                                                        { label: 'Total Processed', value: result.totalProcessed, borderColor: 'border-primary', textColor: 'text-primary', textBoldColor: 'text-primary-foreground' },
-                                                        { label: 'Successful', value: result.successCount, borderColor: 'border-success', textColor: 'text-success', textBoldColor: 'text-success-foreground' },
-                                                        { label: 'Untrained', value: result.untrainedCount, borderColor: 'border-warning', textColor: 'text-warning', textBoldColor: 'text-warning-foreground' },
-                                                        { label: 'Failed', value: result.failedCount, borderColor: 'border-destructive', textColor: 'text-destructive', textBoldColor: 'text-destructive-foreground' },
+                                                        { label: 'Total Processed', value: result.totalProcessed, borderColor: 'border-primary', textColor: 'text-primary', textBoldColor: 'text-black' },
+                                                        { label: 'Successful', value: result.successCount, borderColor: 'border-success', textColor: 'text-success', textBoldColor: 'text-black' },
+                                                        { label: 'Untrained', value: result.untrainedCount, borderColor: 'border-warning', textColor: 'text-warning', textBoldColor: 'text-black' },
+                                                        { label: 'Failed', value: result.failedCount, borderColor: 'border-destructive', textColor: 'text-destructive', textBoldColor: 'text-black' },
                                                     ].map((stat, idx) => (
                                                         <motion.div
                                                             key={stat.label}
@@ -321,10 +374,71 @@ export default function ExcelUploadPage() {
                                                             whileHover={{ scale: 1.02 }}
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={() => handleSendRequests()}
-                                                            className="w-full bg-gradient-to-r from-accent via-primary to-primary/90 text-primary-foreground py-4 rounded-xl font-bold text-lg hover:from-accent/90 hover:via-primary/90 hover:to-primary transition-all shadow-xl hover:shadow-2xl"
+                                                            disabled={selectedIds.size === 0}
+                                                            className="w-full bg-gradient-to-r from-accent via-primary to-primary/90 text-primary-foreground py-4 rounded-xl font-bold text-lg hover:from-accent/90 hover:via-primary/90 hover:to-primary transition-all shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
-                                                            📧 Send Approval Requests to Workshop Managers
+                                                            📧 Send Approval Requests to Workshop Managers ({selectedIds.size})
                                                         </motion.button>
+                                                    </motion.div>
+                                                )}
+
+                                                {/* Employee Selection Table */}
+                                                {untrainedEmployees.length > 0 && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0 }}
+                                                        animate={{ opacity: 1 }}
+                                                        className="mt-8 bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+                                                    >
+                                                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                                            <h3 className="font-bold text-xl text-gray-800">Review Untrained Employees</h3>
+                                                            <div className="text-sm text-gray-500">
+                                                                {selectedIds.size} of {untrainedEmployees.length} selected
+                                                            </div>
+                                                        </div>
+                                                        <div className="overflow-x-auto">
+                                                            <table className="w-full text-left">
+                                                                <thead className="bg-gray-50/50">
+                                                                    <tr>
+                                                                        <th className="p-4 w-12 text-center">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={selectedIds.size === untrainedEmployees.length && untrainedEmployees.length > 0}
+                                                                                onChange={toggleSelectAll}
+                                                                                className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                                            />
+                                                                        </th>
+                                                                        <th className="p-4 font-semibold text-gray-600 text-sm">Employee ID</th>
+                                                                        <th className="p-4 font-semibold text-gray-600 text-sm">Name</th>
+                                                                        <th className="p-4 font-semibold text-gray-600 text-sm">Location</th>
+                                                                        <th className="p-4 font-semibold text-gray-600 text-sm">Department</th>
+                                                                        <th className="p-4 font-semibold text-gray-600 text-sm">Designation</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-gray-100">
+                                                                    {untrainedEmployees.map((emp) => (
+                                                                        <tr key={emp.employeeId} className={`hover:bg-primary/5 transition-colors ${selectedIds.has(emp.employeeId) ? 'bg-primary/5' : ''}`}>
+                                                                            <td className="p-4 text-center">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={selectedIds.has(emp.employeeId)}
+                                                                                    onChange={() => toggleSelect(emp.employeeId)}
+                                                                                    className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                                                />
+                                                                            </td>
+                                                                            <td className="p-4 font-medium text-gray-900">{emp.employeeId}</td>
+                                                                            <td className="p-4 text-gray-700">{emp.name}</td>
+                                                                            <td className="p-4 text-gray-700">
+                                                                                <span className="bg-gray-100 px-2 py-1 rounded text-xs font-semibold text-gray-600">
+                                                                                    {emp.location}
+                                                                                </span>
+                                                                            </td>
+                                                                            <td className="p-4 text-gray-500 text-sm">{emp.department || '-'}</td>
+                                                                            <td className="p-4 text-gray-500 text-sm">{emp.designation || '-'}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
                                                     </motion.div>
                                                 )}
 

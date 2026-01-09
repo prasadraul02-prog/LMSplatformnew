@@ -271,9 +271,9 @@ model StandaloneQuiz {
 model QuizQuestion {
   id            String         @id @default(cuid())
   quizId        String
-  text          String         @db.Text
+  text          String        
   imageUrl      String?
-  explanation   String?        @db.Text
+  explanation   String?       
   points        Int            @default(1)
   order         Int
   questionType  String         @default("SINGLE") // SINGLE, MULTIPLE
@@ -291,7 +291,7 @@ model QuizQuestion {
 model QuizOption {
   id          String       @id @default(cuid())
   questionId  String
-  text        String       @db.Text
+  text        String      
   imageUrl    String?
   isCorrect   Boolean      @default(false)
   order       Int
@@ -390,11 +390,11 @@ model MasterEmployee {
   designation       String
   dateOfJoining     DateTime?
   lastStatusChange  DateTime? // Track when status last changed
-  transferHistory   String?   @db.Text // JSON array of transfer history
+  transferHistory   String?   // JSON array of transfer history
   
   // Dynamic columns stored as JSON string
   // This satisfies the "No Fixed Columns" requirement by allowing any extra data
-  additionalData    String?   @db.Text
+  additionalData    String?  
   
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -416,7 +416,7 @@ model Organization {
 
 model ColumnMetadata {
   id          String   @id @default(cuid())
-  columnOrder String   @db.Text // JSON array of column names in exact Excel order
+  columnOrder String   // JSON array of column names in exact Excel order
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -426,11 +426,11 @@ model EmployeeHistory {
   id                String   @id @default(cuid())
   uniqueId          String   // Employee's Unique ID
   changeType        String   // STATUS_CHANGE, TRANSFER, RESIGNATION, REACTIVATION, EMPLOYEE_ID_CHANGE
-  oldValue          String?  @db.Text // JSON of old state
-  newValue          String?  @db.Text // JSON of new state
+  oldValue          String?  // JSON of old state
+  newValue          String?  // JSON of new state
   organizationFrom  String?
   organizationTo    String?
-  remarks           String?  @db.Text
+  remarks           String? 
   processedBy       String?  // System or User ID
   createdAt         DateTime @default(now())
   
@@ -472,7 +472,7 @@ model OrganizationalTransfer {
   effectiveDate     DateTime @default(now())
   applied           Boolean  @default(false)
   appliedAt         DateTime?
-  remarks           String?  @db.Text
+  remarks           String? 
   createdAt         DateTime @default(now())
   
   @@index([uniqueId])
@@ -489,7 +489,7 @@ model Resignation {
   organizationName  String
   resignationType   String   // NORMAL, ON_TRIAL_DISCONTINUE, TRANSFER_OUT
   resignationDate   DateTime @default(now())
-  remarks           String?  @db.Text
+  remarks           String? 
   applied           Boolean  @default(false)
   appliedAt         DateTime?
   createdAt         DateTime @default(now())
@@ -505,7 +505,7 @@ model Intimation {
   id                  String   @id @default(cuid())
   type                String   // STATUS_CHANGE, TRANSFER, RESIGNATION, EMPLOYEE_ID_CHANGE
   title               String
-  message             String   @db.Text
+  message             String  
   relatedUniqueId     String?
   relatedEmployeeName String?
   priority            String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
